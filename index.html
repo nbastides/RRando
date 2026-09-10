@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 
 <html lang="fr">
@@ -13,7 +13,7 @@
                maximum-scale=1.0,
                user-scalable=no">
 
-<title>Carte randonnée</title>
+<title>RRando</title>
 
 <link
   rel="stylesheet"
@@ -34,282 +34,595 @@ html, body {
   height: 100%;
 }
 
-#gpsButton {
+/* --------------------------------------------------
+   Panneau de commande
+   -------------------------------------------------- */
+
+#controls {
 
   position: absolute;
+
   top: 10px;
-  right: 10px;
+  left: 10px;
 
   z-index: 1000;
 
   background: white;
 
-  border: 2px solid rgba(0,0,0,0.3);
+  padding: 8px;
+
+  border-radius: 6px;
+
+  box-shadow:
+    0 1px 5px rgba(0,0,0,0.4);
+
+}
+
+/* Boutons */
+
+button {
+
+  display: block;
+
+  width: 170px;
+
+  margin: 4px 0;
+
+  padding: 9px;
+
+  border: 1px solid #999;
+
   border-radius: 5px;
 
-  padding: 10px 14px;
+  background: white;
 
-  font-size: 16px;
+  font-size: 15px;
 
-  cursor: pointer;
+}
 
-  box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+/* Input fichier caché */
+
+#fileInput {
+  display: none;
+}
+
+/* Nom du parcours */
+
+#filename {
+
+  max-width: 170px;
+
+  margin-top: 5px;
+
+  font-size: 12px;
+
+  color: #555;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+
 }
 
 </style>
 
 </head>
 
+
 <body>
+
 
 <div id="map"></div>
 
-<button id="gpsButton">
-  📍 Ma position
-</button>
+
+<div id="controls">
+
+  <button id="loadButton">
+    📂 Charger un parcours
+  </button>
+
+  <input
+    type="file"
+    id="fileInput"
+    accept=".geojson,.json"
+  >
+
+  <button id="gpsButton">
+    📍 Ma position
+  </button>
+
+  <div id="filename">
+    Aucun parcours chargé
+  </div>
+
+</div>
+
 
 <script
   src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
 </script>
 
+
 <script>
+
+
+// ==================================================
+// CARTE
+// ==================================================
 
 var map = L.map("map");
 
 
-// --------------------------------------------------
-// OpenTopoMap
-// --------------------------------------------------
-
 L.tileLayer(
+
   "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+
   {
+
     maxZoom: 17,
 
     attribution:
       "&copy; OpenStreetMap contributors, " +
       "SRTM | OpenTopoMap"
+
   }
+
 ).addTo(map);
 
 
-// --------------------------------------------------
-// Couleur des pentes
-// --------------------------------------------------
+// Position initiale
+map.setView(
+  [45.184, 5.679],
+  13
+);
+
+
+// ==================================================
+// COULEUR DES PENTES
+// ==================================================
 
 function couleurPente(pente) {
+  pente = Number(pente);
 
-  if (pente < 5)
-    return "#2c7bb6";
+  if (!isFinite(pente)) return "#808080";
 
-  if (pente < 10)
-    return "#abd9e9";
-
-  if (pente < 15)
-    return "#ffffbf";
-
-  if (pente < 20)
-    return "#fdae61";
-
-  return "#d7191c";
+  if (pente <= 2.5) return "#00A000";   // vert
+  if (pente <= 7.5) return "#FFD700";   // jaune
+  if (pente <= 12.5) return "#E00000";  // rouge
+  return "#000000";                     // noir
 }
 
 
-// --------------------------------------------------
-// Chargement des tronçons
-// --------------------------------------------------
+// ==================================================
+// COUCHE DU PARCOURS
+// ==================================================
 
-fetch("troncons.geojson")
+var parcoursLayer = null;
 
-  .then(function(response) {
-    return response.json();
-  })
 
-  .then(function(data) {
+// ==================================================
+// CHARGEMENT D'UN GEOJSON
+// ==================================================
 
-    var trace = L.geoJSON(
-      data,
+function chargerParcours(data, nomFichier) {
+
+
+  // Supprimer l'ancien parcours
+
+  if (parcoursLayer !== null) {
+
+    map.removeLayer(parcoursLayer);
+
+  }
+
+
+  // Créer le nouveau parcours
+
+  parcoursLayer = L.geoJSON(
+
+    data,
+
+    {
+
+
+      // ------------------------------------------------
+      // Style des tronçons
+      // ------------------------------------------------
+
+      style: function(feature) {
+
+        return {
+
+          color:
+            couleurPente(
+              feature.properties.pente_pct
+            ),
+
+          weight: 6,
+
+          opacity: 0.9
+
+        };
+
+      },
+
+
+      // ------------------------------------------------
+      // Informations au clic
+      // ------------------------------------------------
+
+      onEachFeature:
+        function(feature, layer) {
+
+
+          var p =
+            feature.properties;
+
+
+          var pente =
+            Number(p.pente_pct);
+
+
+          var debut =
+            Number(p.distance_debut);
+
+
+          var fin =
+            Number(p.distance_fin);
+
+
+          layer.bindPopup(
+
+            "<b>Tronçon " +
+            (p.id ?? "") +
+            "</b><br><br>" +
+
+            "Pente moyenne : " +
+
+            "<b>" +
+
+            (isFinite(pente)
+              ? pente.toFixed(1)
+              : "N/A") +
+
+            " %</b><br>" +
+
+            "Distance début : " +
+
+            (isFinite(debut)
+              ? debut.toFixed(0)
+              : "N/A") +
+
+            " m<br>" +
+
+            "Distance fin : " +
+
+            (isFinite(fin)
+              ? fin.toFixed(0)
+              : "N/A") +
+
+            " m"
+
+          );
+
+
+        }
+
+    }
+
+  ).addTo(map);
+
+
+  // ------------------------------------------------
+  // Ajustement automatique
+  // ------------------------------------------------
+
+  if (
+    parcoursLayer.getBounds().isValid()
+  ) {
+
+    map.fitBounds(
+
+      parcoursLayer.getBounds(),
+
       {
+        padding: [30, 30]
+      }
 
-        style: function(feature) {
+    );
 
-          return {
-
-            color:
-              couleurPente(
-                feature.properties.pente_pct
-              ),
-
-            weight: 6,
-
-            opacity: 0.9
-
-          };
-
-        },
+  }
 
 
-        onEachFeature:
-          function(feature, layer) {
+  // Nom du fichier
 
-            var p =
-              feature.properties;
+  document.getElementById(
+    "filename"
+  ).textContent =
+    nomFichier;
 
-            layer.bindPopup(
 
-              "<b>Tronçon " +
-              p.id +
-              "</b><br><br>" +
+}
 
-              "Pente moyenne : <b>" +
-              Number(p.pente_pct).toFixed(1) +
-              " %</b><br>" +
 
-              "Distance début : " +
-              Number(p.distance_debut).toFixed(0) +
-              " m<br>" +
+// ==================================================
+// BOUTON CHARGER
+// ==================================================
 
-              "Distance fin : " +
-              Number(p.distance_fin).toFixed(0) +
-              " m"
+document
+  .getElementById("loadButton")
+  .addEventListener(
 
+    "click",
+
+    function() {
+
+      document
+        .getElementById("fileInput")
+        .click();
+
+    }
+
+  );
+
+
+// ==================================================
+// LECTURE DU FICHIER
+// ==================================================
+
+document
+  .getElementById("fileInput")
+  .addEventListener(
+
+    "change",
+
+    function(event) {
+
+
+      var file =
+        event.target.files[0];
+
+
+      if (!file)
+        return;
+
+
+      var reader =
+        new FileReader();
+
+
+      reader.onload =
+        function(e) {
+
+
+          try {
+
+
+            var data =
+              JSON.parse(
+                e.target.result
+              );
+
+
+            chargerParcours(
+              data,
+              file.name
             );
+
 
           }
 
-      }
-
-    ).addTo(map);
+          catch(error) {
 
 
-    // Ajuster automatiquement la carte
-    // au parcours
-
-    map.fitBounds(
-      trace.getBounds(),
-      {
-        padding: [20, 20]
-      }
-    );
-
-  });
+            alert(
+              "Impossible de lire le fichier GeoJSON."
+            );
 
 
-// --------------------------------------------------
+            console.error(
+              error
+            );
+
+
+          }
+
+        };
+
+
+      reader.readAsText(file);
+
+
+    }
+
+  );
+
+
+// ==================================================
 // GPS
-// --------------------------------------------------
+// ==================================================
 
 var positionMarker = null;
 
 var positionCircle = null;
 
+var gpsWatch = null;
 
-// Fonction GPS
 
-function obtenirPosition() {
+// ==================================================
+// MISE À JOUR POSITION
+// ==================================================
 
-  if (!navigator.geolocation) {
+function mettreAJourPosition(
+  position
+) {
+
+
+  var lat =
+    position.coords.latitude;
+
+
+  var lon =
+    position.coords.longitude;
+
+
+  var accuracy =
+    position.coords.accuracy;
+
+
+  // Première position
+
+  if (
+    positionMarker === null
+  ) {
+
+
+    positionMarker =
+      L.marker(
+
+        [lat, lon],
+
+        {
+          title: "Ma position"
+        }
+
+      ).addTo(map);
+
+
+    positionCircle =
+      L.circle(
+
+        [lat, lon],
+
+        {
+
+          radius: accuracy,
+
+          weight: 2,
+
+          fillOpacity: 0.15
+
+        }
+
+      ).addTo(map);
+
+
+  }
+
+  else {
+
+
+    positionMarker.setLatLng(
+      [lat, lon]
+    );
+
+
+    positionCircle.setLatLng(
+      [lat, lon]
+    );
+
+
+    positionCircle.setRadius(
+      accuracy
+    );
+
+
+  }
+
+
+  positionMarker.bindPopup(
+
+    "<b>Ma position</b><br>" +
+
+    "Latitude : " +
+
+    lat.toFixed(6) +
+
+    "<br>" +
+
+    "Longitude : " +
+
+    lon.toFixed(6) +
+
+    "<br>" +
+
+    "Précision : " +
+
+    Math.round(accuracy) +
+
+    " m"
+
+  );
+
+
+}
+
+
+// ==================================================
+// DEMARRAGE GPS
+// ==================================================
+
+function demarrerGPS() {
+
+
+  if (
+    !navigator.geolocation
+  ) {
+
 
     alert(
-      "La géolocalisation n’est pas disponible."
+      "La géolocalisation n'est pas disponible."
     );
+
 
     return;
 
   }
 
 
+  // Première position
+
   navigator.geolocation.getCurrentPosition(
 
     function(position) {
 
-      var lat =
-        position.coords.latitude;
 
-      var lon =
-        position.coords.longitude;
-
-      var accuracy =
-        position.coords.accuracy;
-
-
-      // Première position
-
-      if (positionMarker === null) {
-
-        positionMarker =
-          L.marker(
-            [lat, lon],
-            {
-              title: "Ma position"
-            }
-          ).addTo(map);
-
-
-        positionCircle =
-          L.circle(
-            [lat, lon],
-            {
-              radius: accuracy,
-              weight: 2,
-              fillOpacity: 0.15
-            }
-          ).addTo(map);
-
-      }
-
-      else {
-
-        positionMarker.setLatLng(
-          [lat, lon]
-        );
-
-        positionCircle.setLatLng(
-          [lat, lon]
-        );
-
-        positionCircle.setRadius(
-          accuracy
-        );
-
-      }
-
-
-      positionMarker.bindPopup(
-
-        "<b>Ma position</b><br>" +
-
-        "Latitude : " +
-        lat.toFixed(6) +
-
-        "<br>" +
-
-        "Longitude : " +
-        lon.toFixed(6) +
-
-        "<br>" +
-
-        "Précision : " +
-        Math.round(accuracy) +
-        " m"
-
+      mettreAJourPosition(
+        position
       );
 
 
       map.setView(
-        [lat, lon],
+
+        [
+
+          position.coords.latitude,
+
+          position.coords.longitude
+
+        ],
+
         16
+
       );
+
 
     },
 
 
     function(error) {
+
 
       alert(
-        "Impossible d’obtenir la position GPS : " +
+
+        "Impossible d'obtenir la position GPS : " +
+
         error.message
+
       );
+
 
     },
 
@@ -326,110 +639,75 @@ function obtenirPosition() {
 
   );
 
-}
+
+  // Suivi continu
+
+  if (
+    gpsWatch !== null
+  ) {
+
+    navigator.geolocation.clearWatch(
+      gpsWatch
+    );
+
+  }
 
 
-// --------------------------------------------------
-// Suivi GPS continu
-// --------------------------------------------------
+  gpsWatch =
+    navigator.geolocation.watchPosition(
 
-if (navigator.geolocation) {
+      function(position) {
 
-  navigator.geolocation.watchPosition(
+        mettreAJourPosition(
+          position
+        );
 
-    function(position) {
-
-      var lat =
-        position.coords.latitude;
-
-      var lon =
-        position.coords.longitude;
-
-      var accuracy =
-        position.coords.accuracy;
+      },
 
 
-      if (positionMarker === null) {
+      function(error) {
 
-        positionMarker =
-          L.marker(
-            [lat, lon],
-            {
-              title: "Ma position"
-            }
-          ).addTo(map);
+        console.log(
+          "Erreur GPS :",
+          error.message
+        );
+
+      },
 
 
-        positionCircle =
-          L.circle(
-            [lat, lon],
-            {
-              radius: accuracy,
-              weight: 2,
-              fillOpacity: 0.15
-            }
-          ).addTo(map);
+      {
+
+        enableHighAccuracy: true,
+
+        maximumAge: 5000,
+
+        timeout: 10000
 
       }
 
-      else {
-
-        positionMarker.setLatLng(
-          [lat, lon]
-        );
-
-        positionCircle.setLatLng(
-          [lat, lon]
-        );
-
-        positionCircle.setRadius(
-          accuracy
-        );
-
-      }
-
-    },
-
-
-    function(error) {
-
-      console.log(
-        "Erreur GPS :",
-        error.message
-      );
-
-    },
-
-
-    {
-
-      enableHighAccuracy: true,
-
-      maximumAge: 5000,
-
-      timeout: 10000
-
-    }
-
-  );
+    );
 
 }
 
 
-// --------------------------------------------------
-// Bouton "Ma position"
-// --------------------------------------------------
+// ==================================================
+// BOUTON GPS
+// ==================================================
 
 document
   .getElementById("gpsButton")
   .addEventListener(
+
     "click",
-    obtenirPosition
+
+    demarrerGPS
+
   );
+
 
 </script>
 
 </body>
 
 </html>
-
+```
