@@ -1,0 +1,435 @@
+
+<!DOCTYPE html>
+
+<html lang="fr">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width,
+               initial-scale=1.0,
+               maximum-scale=1.0,
+               user-scalable=no">
+
+<title>Carte randonnée</title>
+
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+
+<style>
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+}
+
+#gpsButton {
+
+  position: absolute;
+  top: 10px;
+  right: 10px;
+
+  z-index: 1000;
+
+  background: white;
+
+  border: 2px solid rgba(0,0,0,0.3);
+  border-radius: 5px;
+
+  padding: 10px 14px;
+
+  font-size: 16px;
+
+  cursor: pointer;
+
+  box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="map"></div>
+
+<button id="gpsButton">
+  📍 Ma position
+</button>
+
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+</script>
+
+<script>
+
+var map = L.map("map");
+
+
+// --------------------------------------------------
+// OpenTopoMap
+// --------------------------------------------------
+
+L.tileLayer(
+  "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+  {
+    maxZoom: 17,
+
+    attribution:
+      "&copy; OpenStreetMap contributors, " +
+      "SRTM | OpenTopoMap"
+  }
+).addTo(map);
+
+
+// --------------------------------------------------
+// Couleur des pentes
+// --------------------------------------------------
+
+function couleurPente(pente) {
+
+  if (pente < 5)
+    return "#2c7bb6";
+
+  if (pente < 10)
+    return "#abd9e9";
+
+  if (pente < 15)
+    return "#ffffbf";
+
+  if (pente < 20)
+    return "#fdae61";
+
+  return "#d7191c";
+}
+
+
+// --------------------------------------------------
+// Chargement des tronçons
+// --------------------------------------------------
+
+fetch("troncons.geojson")
+
+  .then(function(response) {
+    return response.json();
+  })
+
+  .then(function(data) {
+
+    var trace = L.geoJSON(
+      data,
+      {
+
+        style: function(feature) {
+
+          return {
+
+            color:
+              couleurPente(
+                feature.properties.pente_pct
+              ),
+
+            weight: 6,
+
+            opacity: 0.9
+
+          };
+
+        },
+
+
+        onEachFeature:
+          function(feature, layer) {
+
+            var p =
+              feature.properties;
+
+            layer.bindPopup(
+
+              "<b>Tronçon " +
+              p.id +
+              "</b><br><br>" +
+
+              "Pente moyenne : <b>" +
+              Number(p.pente_pct).toFixed(1) +
+              " %</b><br>" +
+
+              "Distance début : " +
+              Number(p.distance_debut).toFixed(0) +
+              " m<br>" +
+
+              "Distance fin : " +
+              Number(p.distance_fin).toFixed(0) +
+              " m"
+
+            );
+
+          }
+
+      }
+
+    ).addTo(map);
+
+
+    // Ajuster automatiquement la carte
+    // au parcours
+
+    map.fitBounds(
+      trace.getBounds(),
+      {
+        padding: [20, 20]
+      }
+    );
+
+  });
+
+
+// --------------------------------------------------
+// GPS
+// --------------------------------------------------
+
+var positionMarker = null;
+
+var positionCircle = null;
+
+
+// Fonction GPS
+
+function obtenirPosition() {
+
+  if (!navigator.geolocation) {
+
+    alert(
+      "La géolocalisation n’est pas disponible."
+    );
+
+    return;
+
+  }
+
+
+  navigator.geolocation.getCurrentPosition(
+
+    function(position) {
+
+      var lat =
+        position.coords.latitude;
+
+      var lon =
+        position.coords.longitude;
+
+      var accuracy =
+        position.coords.accuracy;
+
+
+      // Première position
+
+      if (positionMarker === null) {
+
+        positionMarker =
+          L.marker(
+            [lat, lon],
+            {
+              title: "Ma position"
+            }
+          ).addTo(map);
+
+
+        positionCircle =
+          L.circle(
+            [lat, lon],
+            {
+              radius: accuracy,
+              weight: 2,
+              fillOpacity: 0.15
+            }
+          ).addTo(map);
+
+      }
+
+      else {
+
+        positionMarker.setLatLng(
+          [lat, lon]
+        );
+
+        positionCircle.setLatLng(
+          [lat, lon]
+        );
+
+        positionCircle.setRadius(
+          accuracy
+        );
+
+      }
+
+
+      positionMarker.bindPopup(
+
+        "<b>Ma position</b><br>" +
+
+        "Latitude : " +
+        lat.toFixed(6) +
+
+        "<br>" +
+
+        "Longitude : " +
+        lon.toFixed(6) +
+
+        "<br>" +
+
+        "Précision : " +
+        Math.round(accuracy) +
+        " m"
+
+      );
+
+
+      map.setView(
+        [lat, lon],
+        16
+      );
+
+    },
+
+
+    function(error) {
+
+      alert(
+        "Impossible d’obtenir la position GPS : " +
+        error.message
+      );
+
+    },
+
+
+    {
+
+      enableHighAccuracy: true,
+
+      maximumAge: 5000,
+
+      timeout: 10000
+
+    }
+
+  );
+
+}
+
+
+// --------------------------------------------------
+// Suivi GPS continu
+// --------------------------------------------------
+
+if (navigator.geolocation) {
+
+  navigator.geolocation.watchPosition(
+
+    function(position) {
+
+      var lat =
+        position.coords.latitude;
+
+      var lon =
+        position.coords.longitude;
+
+      var accuracy =
+        position.coords.accuracy;
+
+
+      if (positionMarker === null) {
+
+        positionMarker =
+          L.marker(
+            [lat, lon],
+            {
+              title: "Ma position"
+            }
+          ).addTo(map);
+
+
+        positionCircle =
+          L.circle(
+            [lat, lon],
+            {
+              radius: accuracy,
+              weight: 2,
+              fillOpacity: 0.15
+            }
+          ).addTo(map);
+
+      }
+
+      else {
+
+        positionMarker.setLatLng(
+          [lat, lon]
+        );
+
+        positionCircle.setLatLng(
+          [lat, lon]
+        );
+
+        positionCircle.setRadius(
+          accuracy
+        );
+
+      }
+
+    },
+
+
+    function(error) {
+
+      console.log(
+        "Erreur GPS :",
+        error.message
+      );
+
+    },
+
+
+    {
+
+      enableHighAccuracy: true,
+
+      maximumAge: 5000,
+
+      timeout: 10000
+
+    }
+
+  );
+
+}
+
+
+// --------------------------------------------------
+// Bouton "Ma position"
+// --------------------------------------------------
+
+document
+  .getElementById("gpsButton")
+  .addEventListener(
+    "click",
+    obtenirPosition
+  );
+
+</script>
+
+</body>
+
+</html>
+
