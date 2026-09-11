@@ -1,1156 +1,517 @@
 <!DOCTYPE html>
-
 <html lang="fr">
-
 <head>
-
-<meta charset="UTF-8">
-
-<meta name="viewport"
-      content="width=device-width,
-               initial-scale=1.0,
-               maximum-scale=1.0,
-               user-scalable=no">
-
-<title>RRando</title>
-
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-/>
-
-<style>
-
-html, body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
-}
-
-#map {
-  width: 100%;
-  height: 100%;
-}
-
-
-/* --------------------------------------------------
-   Panneau de commande
-   -------------------------------------------------- */
-
-#controls {
-
-  position: absolute;
-
-  top: 10px;
-  left: 10px;
-
-  z-index: 1000;
-
-  background: white;
-
-  padding: 8px;
-
-  border-radius: 6px;
-
-  box-shadow:
-    0 1px 5px rgba(0,0,0,0.4);
-
-}
-
-
-/* --------------------------------------------------
-   Boutons
-   -------------------------------------------------- */
-
-button {
-
-  display: block;
-
-  width: 170px;
-
-  margin: 4px 0;
-
-  padding: 9px;
-
-  border: 1px solid #999;
-
-  border-radius: 5px;
-
-  background: white;
-
-  font-size: 15px;
-
-}
-
-
-/* --------------------------------------------------
-   Vitesse GPS
-   -------------------------------------------------- */
-
-#speed {
-
-  width: 170px;
-
-  margin-top: 8px;
-
-  padding: 8px 0;
-
-  text-align: center;
-
-  font-size: 18px;
-
-  font-weight: bold;
-
-  color: #222;
-
-  border-top: 1px solid #ddd;
-
-}
-
-
-/* --------------------------------------------------
-   Précision GPS
-   -------------------------------------------------- */
-
-#accuracy {
-
-  width: 170px;
-
-  text-align: center;
-
-  font-size: 12px;
-
-  color: #666;
-
-}
-
-
-/* --------------------------------------------------
-   Nom du parcours
-   -------------------------------------------------- */
-
-#filename {
-
-  max-width: 170px;
-
-  margin-top: 5px;
-
-  font-size: 12px;
-
-  color: #555;
-
-  overflow: hidden;
-
-  text-overflow: ellipsis;
-
-  white-space: nowrap;
-
-}
-
-
-/* --------------------------------------------------
-   Input fichier caché
-   -------------------------------------------------- */
-
-#fileInput {
-  display: none;
-}
-
-</style>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RRando - Suivi GPS de Randonnées</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f5f5f5;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+    }
+
+    .control-panel {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      padding: 12px;
+      z-index: 1000;
+      max-width: 280px;
+    }
+
+    .control-panel h2 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: #333;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .control-section {
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .control-section:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .button {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 8px;
+      border: none;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    .button:last-child {
+      margin-bottom: 0;
+    }
+
+    .button-primary {
+      background: #0066cc;
+      color: white;
+    }
+
+    .button-primary:hover {
+      background: #0052a3;
+    }
+
+    .button-primary:active {
+      transform: scale(0.98);
+    }
+
+    .button-secondary {
+      background: #f0f0f0;
+      color: #333;
+      border: 1px solid #ddd;
+    }
+
+    .button-secondary:hover {
+      background: #e8e8e8;
+    }
+
+    .button-secondary.active {
+      background: #0066cc;
+      color: white;
+      border-color: #0066cc;
+    }
+
+    .status-display {
+      font-size: 12px;
+      line-height: 1.5;
+      color: #555;
+    }
+
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      padding: 4px 0;
+    }
+
+    .status-label {
+      font-weight: 500;
+      color: #666;
+    }
+
+    .status-value {
+      font-weight: 600;
+      color: #0066cc;
+      text-align: right;
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      display: block;
+    }
+
+    .file-input-wrapper input[type="file"] {
+      display: none;
+    }
+
+    .gps-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ccc;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .gps-indicator.active {
+      background: #00b300;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    .route-list {
+      max-height: 150px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 6px;
+    }
+
+    .route-item {
+      padding: 6px;
+      background: #f9f9f9;
+      border-radius: 3px;
+      margin-bottom: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .route-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .route-item:hover {
+      background: #f0f0f0;
+    }
+
+    .route-item.active {
+      background: #e3f2fd;
+      color: #0066cc;
+      font-weight: 600;
+    }
+
+    .error-box {
+      background: #fee;
+      border: 1px solid #fcc;
+      border-radius: 4px;
+      padding: 8px;
+      font-size: 12px;
+      color: #c00;
+      margin-bottom: 8px;
+      display: none;
+    }
+
+    .error-box.show {
+      display: block;
+    }
+  </style>
 </head>
 
-
 <body>
+  <div id="map"></div>
 
+  <div class="control-panel">
+    <h2>🗺️ RRando</h2>
 
-<div id="map"></div>
+    <div class="error-box" id="errorBox"></div>
 
+    <!-- Section Fichiers -->
+    <div class="control-section">
+      <div class="file-input-wrapper">
+        <input 
+          type="file" 
+          id="fileInput" 
+          accept=".geojson,.json"
+          multiple
+        />
+        <button class="button button-primary" onclick="document.getElementById('fileInput').click()">
+          📁 Charger itinéraires
+        </button>
+      </div>
+      <div class="route-list" id="routeList"></div>
+    </div>
 
-<div id="controls">
+    <!-- Section GPS -->
+    <div class="control-section">
+      <button class="button button-primary" id="gpsBtn" onclick="app.toggleGPS()">
+        <span class="gps-indicator" id="gpsIndicator"></span>
+        📍 Démarrer GPS
+      </button>
+      <button class="button button-secondary" id="autoFollowBtn" onclick="app.toggleAutoFollow()">
+        🔄 Auto-suivi
+      </button>
+    </div>
 
-  <button id="loadButton">
-    📂 Charger un parcours
-  </button>
+    <!-- Section Statistiques -->
+    <div class="control-section">
+      <div class="status-display">
+        <div class="status-item">
+          <span class="status-label">Vitesse :</span>
+          <span class="status-value" id="speedDisplay">-- km/h</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Précision :</span>
+          <span class="status-value" id="accuracyDisplay">-- m</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Latitude :</span>
+          <span class="status-value" id="latDisplay">--</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Longitude :</span>
+          <span class="status-value" id="lonDisplay">--</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Altitude :</span>
+          <span class="status-value" id="altDisplay">-- m</span>
+        </div>
+      </div>
+    </div>
 
-  <input
-    type="file"
-    id="fileInput"
-    accept=".geojson,.json"
-  >
-
-  <button id="gpsButton">
-    📍 Ma position
-  </button>
-
-  <button id="followButton">
-    ⛔ Arrêter le suivi
-  </button>
-
-  <div id="speed">
-    🚶 Vitesse : -- km/h
+    <!-- Section Debug -->
+    <div class="control-section">
+      <button class="button button-secondary" onclick="app.toggleDebug()">
+        🐛 Debug
+      </button>
+    </div>
   </div>
 
-  <div id="accuracy">
-    GPS : -- m
-  </div>
+  <!-- Leaflet JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 
-  <div id="filename">
-    Aucun parcours chargé
-  </div>
+  <script>
+    /**
+     * APPLICATION RRANDO - Suivi GPS pour Randonnées/Vélos
+     * Version: 2.0 (Refactorisée)
+     */
 
-</div>
+    class RRando {
+      constructor() {
+        // État GPS
+        this.gpsActive = false;
+        this.gpsWatchId = null;
+        this.autoFollow = false;
+        this.debug = false;
 
+        // Données de position
+        this.currentPosition = null;
+        this.positionHistory = []; // Buffer pour calcul de vitesse
+        this.MAX_HISTORY = 5;
+        this.MIN_MOVEMENT = 3; // mètres
 
-<script
-  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
-</script>
+        // Carte et couches
+        this.map = null;
+        this.routeLayers = {}; // { nomFichier: { layer, data, visible } }
+        this.markerGPS = null;
+        this.accuracyCircle = null;
 
-
-<script>
-
-
-// ==================================================
-// CARTE
-// ==================================================
-
-var map = L.map("map");
-
-
-L.tileLayer(
-
-  "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-
-  {
-
-    maxZoom: 17,
-
-    attribution:
-      "&copy; OpenStreetMap contributors, " +
-      "SRTM | OpenTopoMap"
-
-  }
-
-).addTo(map);
-
-
-// Position initiale
-
-map.setView(
-  [45.184, 5.679],
-  13
-);
-
-
-// ==================================================
-// COULEUR DES PENTES
-// ==================================================
-
-function couleurPente(pente) {
-
-  pente = Number(pente);
-
-  if (!isFinite(pente))
-    return "#808080";
-
-  if (pente <= 2.5)
-    return "#00A000";
-
-  if (pente <= 7.5)
-    return "#FFD700";
-
-  if (pente <= 12.5)
-    return "#E00000";
-
-  return "#000000";
-
-}
-
-
-// ==================================================
-// COUCHE DU PARCOURS
-// ==================================================
-
-var parcoursLayer = null;
-
-
-// ==================================================
-// CHARGEMENT D'UN GEOJSON
-// ==================================================
-
-function chargerParcours(data, nomFichier) {
-
-
-  // Supprimer l'ancien parcours
-
-  if (parcoursLayer !== null) {
-
-    map.removeLayer(parcoursLayer);
-
-  }
-
-
-  // Créer le nouveau parcours
-
-  parcoursLayer = L.geoJSON(
-
-    data,
-
-    {
-
-      // ----------------------------------------------
-      // Style des tronçons
-      // ----------------------------------------------
-
-      style: function(feature) {
-
-        return {
-
-          color:
-            couleurPente(
-              feature.properties.pente_pct
-            ),
-
-          weight: 6,
-
-          opacity: 0.9
-
+        // Couleurs des pentes
+        this.slopeColors = {
+          safe: '#00A000',      // ≤ 2.5%
+          easy: '#FFD700',      // 2.5% < x ≤ 7.5%
+          medium: '#E00000',    // 7.5% < x ≤ 12.5%
+          hard: '#000000',      // > 12.5%
+          invalid: '#808080'    // NaN
         };
 
-      },
-
-
-      // ----------------------------------------------
-      // Informations au clic
-      // ----------------------------------------------
-
-      onEachFeature:
-        function(feature, layer) {
-
-
-          var p =
-            feature.properties;
-
-
-          var pente =
-            Number(p.pente_pct);
-
-
-          var debut =
-            Number(p.distance_debut);
-
-
-          var fin =
-            Number(p.distance_fin);
-
-
-          layer.bindPopup(
-
-            "<b>Tronçon " +
-            (p.id ?? "") +
-            "</b><br><br>" +
-
-            "Pente moyenne : " +
-
-            "<b>" +
-
-            (isFinite(pente)
-              ? pente.toFixed(1)
-              : "N/A") +
-
-            " %</b><br>" +
-
-            "Distance début : " +
-
-            (isFinite(debut)
-              ? debut.toFixed(0)
-              : "N/A") +
-
-            " m<br>" +
-
-            "Distance fin : " +
-
-            (isFinite(fin)
-              ? fin.toFixed(0)
-              : "N/A") +
-
-            " m"
-
-          );
-
-
-        }
-
-    }
-
-  ).addTo(map);
-
-
-  // ----------------------------------------------
-  // Ajustement automatique
-  // ----------------------------------------------
-
-  if (
-    parcoursLayer.getBounds().isValid()
-  ) {
-
-    map.fitBounds(
-
-      parcoursLayer.getBounds(),
-
-      {
-        padding: [30, 30]
+        this.init();
       }
 
-    );
+      /**
+       * Initialisation
+       */
+      init() {
+        this.log('Initialisation RRando...');
+        this.initMap();
+        this.attachEventListeners();
+      }
 
-  }
+      /**
+       * Initialiser la carte Leaflet
+       */
+      initMap() {
+        this.map = L.map('map').setView([45.184, 5.679], 13);
 
+        // Couche de tuiles (OpenTopoMap avec fallback)
+        L.tileLayer(
+          'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+          {
+            maxZoom: 17,
+            attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
+            errorTileUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+          }
+        ).addTo(this.map);
 
-  // Nom du fichier
+        this.log('Carte initialisée', { center: this.map.getCenter(), zoom: this.map.getZoom() });
+      }
 
-  document.getElementById(
-    "filename"
-  ).textContent =
-    nomFichier;
+      /**
+       * Attacher les événements
+       */
+      attachEventListeners() {
+        const fileInput = document.getElementById('fileInput');
+        fileInput.addEventListener('change', (e) => this.handleFileUpload(e));
+      }
 
-}
+      /**
+       * Gérer le chargement de fichiers
+       */
+      async handleFileUpload(event) {
+        const files = Array.from(event.target.files);
+        this.log('Fichiers sélectionnés', files.map(f => f.name));
 
-
-// ==================================================
-// BOUTON CHARGER
-// ==================================================
-
-document
-  .getElementById("loadButton")
-  .addEventListener(
-
-    "click",
-
-    function() {
-
-      document
-        .getElementById("fileInput")
-        .click();
-
-    }
-
-  );
-
-
-// ==================================================
-// LECTURE DU FICHIER
-// ==================================================
-
-document
-  .getElementById("fileInput")
-  .addEventListener(
-
-    "change",
-
-    function(event) {
-
-
-      var file =
-        event.target.files[0];
-
-
-      if (!file)
-        return;
-
-
-      var reader =
-        new FileReader();
-
-
-      reader.onload =
-        function(e) {
-
-
+        for (const file of files) {
           try {
-
-
-            var data =
-              JSON.parse(
-                e.target.result
-              );
-
-
-            chargerParcours(
-              data,
-              file.name
-            );
-
-
+            const text = await file.text();
+            const data = JSON.parse(text);
+            this.loadRoute(data, file.name);
+          } catch (error) {
+            this.showError(`❌ Erreur ${file.name}: ${error.message}`);
+            this.log('Erreur fichier', { file: file.name, error });
           }
-
-          catch(error) {
-
-
-            alert(
-              "Impossible de lire le fichier GeoJSON."
-            );
-
-
-            console.error(
-              error
-            );
-
-
-          }
-
-        };
-
-
-      reader.readAsText(file);
-
-    }
-
-  );
-
-
-// ==================================================
-// GPS
-// ==================================================
-
-var positionMarker = null;
-
-var positionCircle = null;
-
-var gpsWatch = null;
-
-
-// ==================================================
-// SUIVI AUTOMATIQUE
-// ==================================================
-
-var suivreGPS = true;
-
-
-// ==================================================
-// POSITION GPS PRECEDENTE
-// ==================================================
-
-var dernierePosition = null;
-
-
-// ==================================================
-// HISTORIQUE DES VITESSES
-// ==================================================
-
-var historiqueVitesses = [];
-
-var nombreMesuresVitesse = 5;
-
-
-// ==================================================
-// CALCUL DE LA VITESSE
-// ==================================================
-
-function calculerVitesse(position) {
-
-
-  var lat =
-    position.coords.latitude;
-
-
-  var lon =
-    position.coords.longitude;
-
-
-  var timestamp =
-    position.timestamp;
-
-
-  // Première mesure
-
-  if (
-    dernierePosition === null
-  ) {
-
-    dernierePosition = {
-
-      lat: lat,
-
-      lon: lon,
-
-      timestamp: timestamp
-
-    };
-
-    return null;
-
-  }
-
-
-  // Temps écoulé en secondes
-
-  var dt =
-    (timestamp -
-     dernierePosition.timestamp) / 1000;
-
-
-  // Vérification
-
-  if (
-    dt <= 0
-  ) {
-
-    return null;
-
-  }
-
-
-  // Distance en mètres
-
-  var distance =
-    map.distance(
-
-      [
-        dernierePosition.lat,
-        dernierePosition.lon
-      ],
-
-      [
-        lat,
-        lon
-      ]
-
-    );
-
-
-  // Mémoriser la nouvelle position
-
-  dernierePosition = {
-
-    lat: lat,
-
-    lon: lon,
-
-    timestamp: timestamp
-
-  };
-
-
-  // Ignorer les déplacements GPS
-  // inférieurs à 3 mètres
-
-  if (
-    distance < 3
-  ) {
-
-    return 0;
-
-  }
-
-
-  // vitesse m/s
-
-  var vitesseMS =
-    distance / dt;
-
-
-  // conversion en km/h
-
-  var vitesseKMH =
-    vitesseMS * 3.6;
-
-
-  return vitesseKMH;
-
-}
-
-
-// ==================================================
-// MISE À JOUR DE LA VITESSE
-// ==================================================
-
-function mettreAJourVitesse(position) {
-
-
-  var vitesse =
-    calculerVitesse(position);
-
-
-  if (
-    vitesse === null
-  ) {
-
-    return;
-
-  }
-
-
-  // Ajouter à l'historique
-
-  historiqueVitesses.push(
-    vitesse
-  );
-
-
-  // Conserver seulement
-  // les dernières mesures
-
-  if (
-    historiqueVitesses.length >
-    nombreMesuresVitesse
-  ) {
-
-    historiqueVitesses.shift();
-
-  }
-
-
-  // Moyenne glissante
-
-  var somme =
-    historiqueVitesses.reduce(
-
-      function(a, b) {
-        return a + b;
-      },
-
-      0
-
-    );
-
-
-  var vitesseMoyenne =
-    somme /
-    historiqueVitesses.length;
-
-
-  // Affichage
-
-  document.getElementById(
-    "speed"
-  ).textContent =
-
-    "🚶 Vitesse : " +
-
-    vitesseMoyenne.toFixed(1) +
-
-    " km/h";
-
-}
-
-
-// ==================================================
-// MISE À JOUR POSITION
-// ==================================================
-
-function mettreAJourPosition(
-  position
-) {
-
-
-  var lat =
-    position.coords.latitude;
-
-
-  var lon =
-    position.coords.longitude;
-
-
-  var accuracy =
-    position.coords.accuracy;
-
-
-  // ----------------------------------------------
-  // Première position
-  // ----------------------------------------------
-
-  if (
-    positionMarker === null
-  ) {
-
-
-    positionMarker =
-      L.marker(
-
-        [lat, lon],
-
-        {
-          title: "Ma position"
         }
 
-      ).addTo(map);
+        // Réinitialiser l'input
+        event.target.value = '';
+      }
 
-
-    positionCircle =
-      L.circle(
-
-        [lat, lon],
-
-        {
-
-          radius: accuracy,
-
-          weight: 2,
-
-          fillOpacity: 0.15
-
+      /**
+       * Charger un itinéraire GeoJSON
+       */
+      loadRoute(geojsonData, fileName) {
+        // Validation basique
+        if (!geojsonData.features || !Array.isArray(geojsonData.features)) {
+          throw new Error('Format GeoJSON invalide (pas de features)');
         }
 
-      ).addTo(map);
-
-
-  }
-
-  else {
-
-
-    positionMarker.setLatLng(
-      [lat, lon]
-    );
-
-
-    positionCircle.setLatLng(
-      [lat, lon]
-    );
-
-
-    positionCircle.setRadius(
-      accuracy
-    );
-
-
-  }
-
-
-  // ----------------------------------------------
-  // Mise à jour vitesse
-  // ----------------------------------------------
-
-  mettreAJourVitesse(
-    position
-  );
-
-
-  // ----------------------------------------------
-  // Affichage précision
-  // ----------------------------------------------
-
-  document.getElementById(
-    "accuracy"
-  ).textContent =
-
-    "GPS : " +
-
-    Math.round(accuracy) +
-
-    " m";
-
-
-  // ----------------------------------------------
-  // Popup
-  // ----------------------------------------------
-
-  positionMarker.bindPopup(
-
-    "<b>Ma position</b><br>" +
-
-    "Latitude : " +
-
-    lat.toFixed(6) +
-
-    "<br>" +
-
-    "Longitude : " +
-
-    lon.toFixed(6) +
-
-    "<br>" +
-
-    "Précision : " +
-
-    Math.round(accuracy) +
-
-    " m"
-
-  );
-
-
-  // =================================================
-  // SUIVI DE LA POSITION
-  // =================================================
-
-  if (
-    suivreGPS
-  ) {
-
-
-    map.panTo(
-
-      [lat, lon],
-
-      {
-
-        animate: true,
-
-        duration: 0.5
-
-      }
-
-    );
-
-  }
-
-}
-
-
-// ==================================================
-// DEMARRAGE GPS
-// ==================================================
-
-function demarrerGPS() {
-
-
-  if (
-    !navigator.geolocation
-  ) {
-
-
-    alert(
-      "La géolocalisation n'est pas disponible."
-    );
-
-
-    return;
-
-  }
-
-
-  // Activer le suivi
-
-  suivreGPS = true;
-
-
-  document.getElementById(
-    "followButton"
-  ).textContent =
-    "⛔ Arrêter le suivi";
-
-
-  // Réinitialiser l'historique vitesse
-
-  dernierePosition = null;
-
-  historiqueVitesses = [];
-
-
-  document.getElementById(
-    "speed"
-  ).textContent =
-    "🚶 Vitesse : -- km/h";
-
-
-  // ----------------------------------------------
-  // Première position
-  // ----------------------------------------------
-
-  navigator.geolocation.getCurrentPosition(
-
-    function(position) {
-
-
-      mettreAJourPosition(
-        position
-      );
-
-
-      map.setView(
-
-        [
-
-          position.coords.latitude,
-
-          position.coords.longitude
-
-        ],
-
-        16
-
-      );
-
-
-    },
-
-
-    function(error) {
-
-
-      alert(
-
-        "Impossible d'obtenir la position GPS : " +
-
-        error.message
-
-      );
-
-
-    },
-
-
-    {
-
-      enableHighAccuracy: true,
-
-      maximumAge: 5000,
-
-      timeout: 10000
-
-    }
-
-  );
-
-
-  // ----------------------------------------------
-  // Suivi continu
-  // ----------------------------------------------
-
-  if (
-    gpsWatch !== null
-  ) {
-
-    navigator.geolocation.clearWatch(
-      gpsWatch
-    );
-
-  }
-
-
-  gpsWatch =
-    navigator.geolocation.watchPosition(
-
-      function(position) {
-
-
-        mettreAJourPosition(
-          position
-        );
-
-
-      },
-
-
-      function(error) {
-
-        console.log(
-          "Erreur GPS :",
-          error.message
-        );
-
-      },
-
-
-      {
-
-        enableHighAccuracy: true,
-
-        maximumAge: 5000,
-
-        timeout: 10000
-
-      }
-
-    );
-
-}
-
-
-// ==================================================
-// ARRET DU SUIVI
-// ==================================================
-
-function arreterSuiviGPS() {
-
-
-  suivreGPS = false;
-
-
-  document.getElementById(
-    "followButton"
-  ).textContent =
-    "📍 Reprendre le suivi";
-
-
-}
-
-
-// ==================================================
-// BOUTON GPS
-// ==================================================
-
-document
-  .getElementById("gpsButton")
-  .addEventListener(
-
-    "click",
-
-    demarrerGPS
-
-  );
-
-
-// ==================================================
-// BOUTON SUIVI
-// ==================================================
-
-document
-  .getElementById("followButton")
-  .addEventListener(
-
-    "click",
-
-    function() {
-
-
-      if (
-        suivreGPS
-      ) {
-
-        arreterSuiviGPS();
-
-      }
-
-      else {
-
-        suivreGPS = true;
-
-
-        document.getElementById(
-          "followButton"
-        ).textContent =
-          "⛔ Arrêter le suivi";
-
-
-        // Recentrer immédiatement
-
-        if (
-          positionMarker !== null
-        ) {
-
-          map.panTo(
-            positionMarker.getLatLng(),
-            {
-              animate: true,
-              duration: 0.5
-            }
+        // Créer une couche
+        const featureGroup = L.featureGroup();
+
+        geojsonData.features.forEach((feature) => {
+          if (!feature.geometry || feature.geometry.type !== 'LineString') {
+            return; // Sauter les géométries non-LineString
+          }
+
+          const coords = feature.geometry.coordinates;
+          const latlngs = coords.map(([lon, lat]) => [lat, lon]);
+
+          const slope = feature.properties?.pente_pct ?? null;
+          const color = this.getSlopeColor(slope);
+
+          const polyline = L.polyline(latlngs, {
+            color: color,
+            weight: 3,
+            opacity: 0.8,
+            lineCap: 'round',
+            lineJoin: 'round'
+          });
+
+          // Popup au survol
+          polyline.bindPopup(
+            `<b>${fileName}</b><br/>` +
+            `Pente: ${slope !== null ? slope.toFixed(1) + '%' : 'N/A'}`
           );
 
+          polyline.addTo(featureGroup);
+        });
+
+        // Stocker et afficher
+        this.routeLayers[fileName] = {
+          layer: featureGroup,
+          data: geojsonData,
+          visible: true
+        };
+
+        featureGroup.addTo(this.map);
+
+        // Ajuster la vue
+        const bounds = featureGroup.getBounds();
+        if (bounds.isValid()) {
+          this.map.fitBounds(bounds, { padding: [50, 50] });
         }
 
+        this.updateRouteList();
+        this.log('Itinéraire chargé', { fileName, features: geojsonData.features.length });
+        this.showError(`✓ ${fileName} chargé (${geojsonData.features.length} segments)`);
       }
 
-    }
+      /**
+       * Obtenir la couleur selon la pente
+       */
+      getSlopeColor(slope) {
+        if (slope === null || isNaN(slope)) {
+          return this.slopeColors.invalid;
+        }
+        if (slope <= 2.5) return this.slopeColors.safe;
+        if (slope <= 7.5) return this.slopeColors.easy;
+        if (slope <= 12.5) return this.slopeColors.medium;
+        return this.slopeColors.hard;
+      }
 
-  );
+      /**
+       * Mettre à jour la liste des itinéraires
+       */
+      updateRouteList() {
+        const list = document.getElementById('routeList');
+        list.innerHTML = '';
 
+        Object.entries(this.routeLayers).forEach(([name, route]) => {
+          const item = document.createElement('div');
+          item.className = 'route-item' + (route.visible ? ' active' : '');
+          item.textContent = name;
+          item.onclick = () => this.toggleRoute(name);
+          list.appendChild(item);
+        });
+      }
 
-</script>
+      /**
+       * Basculer la visibilité d'un itinéraire
+       */
+      toggleRoute(fileName) {
+        const route = this.routeLayers[fileName];
+        route.visible = !route.visible;
 
-</body>
+        if (route.visible) {
+          route.layer.addTo(this.map);
+        } else {
+          this.map.removeLayer(route.layer);
+        }
 
-</html>
+        this.updateRouteList();
+      }
+
+      /**
+       * Basculer GPS
+       */
+      async toggleGPS() {
+        if (this.gpsActive) {
+          this.stopGPS();
+        } else {
+          this.startGPS();
+        }
+      }
+
+      /**
+       * Démarrer le GPS
+       */
+      startGPS() {
+        if (!navigator.geolocation) {
+          this.showError('❌ Géolocalisation non supportée');
+          return;
+        }
+
+        this.log('Démarrage GPS...');
+        const btn = document.getElementById('gpsBtn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Initialisation...';
+
+        // Obtenir la position initiale
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            this.updatePosition(position);
+            this.gpsActive = true;
+            this.showError(`✓ GPS actif (précision: ${position.coords.accuracy.toFixed(0)}m)`);
+            this.updateGPS
