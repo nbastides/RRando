@@ -35,7 +35,7 @@ html, body {
 
 
 /* --------------------------------------------------
-   Panneau de commande
+   Interface GPS compacte
    -------------------------------------------------- */
 
 #controls {
@@ -47,65 +47,110 @@ html, body {
 
   z-index: 1000;
 
-  background: white;
+  display: flex;
 
-  padding: 8px;
+  flex-direction: column;
 
-  border-radius: 6px;
-
-  box-shadow:
-    0 1px 5px rgba(0,0,0,0.4);
-
+  align-items: flex-start;
 }
 
 
 /* --------------------------------------------------
-   Boutons
+   Boutons GPS ronds
    -------------------------------------------------- */
 
-button {
+#loadButton,
+#gpsButton,
+#followButton {
 
   display: block;
 
-  width: 170px;
+  width: 36px;
+  height: 36px;
 
-  margin: 4px 0;
+  margin: 0 0 6px 0;
 
-  padding: 9px;
+  padding: 0;
 
-  border: 1px solid #999;
+  border: 1px solid rgba(255,255,255,0.75);
 
-  border-radius: 5px;
+  border-radius: 50%;
 
-  background: white;
+  background: rgba(255,255,255,0.72);
 
-  font-size: 15px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 
+  box-shadow:
+    0 2px 6px rgba(0,0,0,0.30);
+
+  font-size: 18px;
+
+  line-height: 34px;
+
+  text-align: center;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
 }
 
 
 /* --------------------------------------------------
-   Vitesse GPS
+   Effet au survol
+   -------------------------------------------------- */
+
+#loadButton:hover,
+#gpsButton:hover,
+#followButton:hover {
+
+  background: rgba(255,255,255,0.90);
+
+  transform: scale(1.08);
+}
+
+
+/* --------------------------------------------------
+   Effet au clic
+   -------------------------------------------------- */
+
+#loadButton:active,
+#gpsButton:active,
+#followButton:active {
+
+  transform: scale(0.92);
+}
+
+
+/* --------------------------------------------------
+   Vitesse
    -------------------------------------------------- */
 
 #speed {
 
-  width: 170px;
+  margin: 0 0 5px 0;
 
-  margin-top: 8px;
+  padding: 4px 7px;
 
-  padding: 8px 0;
+  background: rgba(255,255,255,0.72);
 
-  text-align: center;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 
-  font-size: 18px;
+  border-radius: 10px;
 
-  font-weight: bold;
+  box-shadow:
+    0 2px 6px rgba(0,0,0,0.25);
+
+  font-size: 12px;
+
+  font-weight: 600;
+
+  white-space: nowrap;
 
   color: #222;
-
-  border-top: 1px solid #ddd;
-
 }
 
 
@@ -115,38 +160,30 @@ button {
 
 #accuracy {
 
-  width: 170px;
+  margin: 0 0 6px 0;
 
-  text-align: center;
+  padding: 4px 7px;
 
-  font-size: 12px;
+  background: rgba(255,255,255,0.72);
 
-  color: #666;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 
-}
+  border-radius: 10px;
 
+  box-shadow:
+    0 2px 6px rgba(0,0,0,0.25);
 
-/* --------------------------------------------------
-   Nom du parcours
-   -------------------------------------------------- */
+  font-size: 11px;
 
-#filename {
-
-  max-width: 170px;
-
-  margin-top: 5px;
-
-  font-size: 12px;
-
-  color: #555;
-
-  overflow: hidden;
-
-  text-overflow: ellipsis;
+  font-weight: 600;
 
   white-space: nowrap;
 
+  color: #555;
 }
+
+
 
 
 /* --------------------------------------------------
@@ -165,13 +202,13 @@ button {
 <body>
 
 
-<div id="map"></div>
-
-
 <div id="controls">
 
-  <button id="loadButton">
-    📂 Charger un parcours
+  <!-- Charger un parcours -->
+  <button
+    id="loadButton"
+    title="Charger un parcours">
+    📂
   </button>
 
   <input
@@ -180,28 +217,35 @@ button {
     accept=".geojson,.json"
   >
 
-  <button id="gpsButton">
-    📍 Ma position
+
+  <!-- Position GPS -->
+  <button
+    id="gpsButton"
+    title="Ma position">
+    📍
   </button>
 
-  <button id="followButton">
-    ⛔ Arrêter le suivi
-  </button>
 
+  <!-- Vitesse -->
   <div id="speed">
-    🚶 Vitesse : -- km/h
+    🚲 -- km/h
   </div>
 
+
+  <!-- Précision GPS -->
   <div id="accuracy">
-    GPS : -- m
+    📡 -- m
   </div>
 
-  <div id="filename">
-    Aucun parcours chargé
-  </div>
+
+  <!-- Suivi automatique -->
+  <button
+    id="followButton"
+    title="Arrêter le suivi">
+    ⛔
+  </button>
 
 </div>
-
 
 <script
   src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
@@ -406,14 +450,6 @@ function chargerParcours(data, nomFichier) {
     );
 
   }
-
-
-  // Nom du fichier
-
-  document.getElementById(
-    "filename"
-  ).textContent =
-    nomFichier;
 
 }
 
@@ -727,11 +763,9 @@ function mettreAJourVitesse(position) {
     "speed"
   ).textContent =
 
-    "🚶 Vitesse : " +
-
-    vitesseMoyenne.toFixed(1) +
-
-    " km/h";
+   "🚲 " +
+vitesseMoyenne.toFixed(1) +
+" km/h";
 
 }
 
@@ -940,10 +974,10 @@ function demarrerGPS() {
   historiqueVitesses = [];
 
 
-  document.getElementById(
-    "speed"
-  ).textContent =
-    "🚶 Vitesse : -- km/h";
+ document.getElementById(
+  "speed"
+).textContent =
+  "🚲 -- km/h";
 
 
   // ----------------------------------------------
@@ -1071,9 +1105,14 @@ function arreterSuiviGPS() {
 
 
   document.getElementById(
-    "followButton"
-  ).textContent =
-    "📍 Reprendre le suivi";
+  "followButton"
+).textContent =
+  "▶️";
+
+document.getElementById(
+  "followButton"
+).title =
+  "Reprendre le suivi";
 
 
 }
