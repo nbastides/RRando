@@ -1,177 +1,163 @@
 <!DOCTYPE html>
+
 <html lang="fr">
 
 <head>
 
-    <meta charset="UTF-8">
+<meta charset="UTF-8">
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport"
+      content="width=device-width,
+               initial-scale=1.0,
+               maximum-scale=1.0,
+               user-scalable=no">
 
-    <title>RRando</title>
+<title>RRando</title>
 
-    <!-- Leaflet -->
-    <link rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
 
-   
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
 
-
-    <style>
-
-        /* =========================================================
-           Carte
-           ========================================================= */
-
-        html,
-        body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
-
-        #map {
-            width: 100%;
-            height: 100%;
-        }
+#map {
+  width: 100%;
+  height: 100%;
+}
 
 
-        /* =========================================================
-           Bloc des contrôles GPS
-           ========================================================= */
+/* --------------------------------------------------
+   Panneau de commande
+   -------------------------------------------------- */
 
-        #controls {
+#controls {
 
-            position: absolute;
+  position: absolute;
 
-            top: 10px;
-            left: 10px;
+  top: 10px;
+  left: 10px;
 
-            z-index: 1000;
+  z-index: 1000;
 
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-        }
+  background: white;
 
+  padding: 8px;
 
-        /* =========================================================
-           Boutons ronds compacts
-           ========================================================= */
+  border-radius: 6px;
 
-        #loadButton,
-        #gpsButton,
-        #followButton {
+  box-shadow:
+    0 1px 5px rgba(0,0,0,0.4);
 
-            width: 36px;
-            height: 36px;
-
-            padding: 0;
-            margin-bottom: 6px;
-
-            border: 1px solid rgba(255,255,255,0.7);
-
-            border-radius: 50%;
-
-            background: rgba(255,255,255,0.72);
-
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
-
-            box-shadow: 0 2px 6px rgba(0,0,0,0.30);
-
-            font-size: 18px;
-            line-height: 36px;
-
-            text-align: center;
-
-            cursor: pointer;
-
-            transition:
-                background 0.15s ease,
-                transform 0.15s ease;
-        }
+}
 
 
-        /* =========================================================
-           Effet souris
-           ========================================================= */
+/* --------------------------------------------------
+   Boutons
+   -------------------------------------------------- */
 
-        #loadButton:hover,
-        #gpsButton:hover,
-        #followButton:hover {
+button {
 
-            background: rgba(255,255,255,0.90);
+  display: block;
 
-            transform: scale(1.08);
-        }
+  width: 170px;
 
+  margin: 4px 0;
 
-        /* =========================================================
-           Effet clic
-           ========================================================= */
+  padding: 9px;
 
-        #loadButton:active,
-        #gpsButton:active,
-        #followButton:active {
+  border: 1px solid #999;
 
-            transform: scale(0.92);
-        }
+  border-radius: 5px;
 
+  background: white;
 
-        /* =========================================================
-           Informations vitesse / précision GPS
-           ========================================================= */
+  font-size: 15px;
 
-        #speed,
-        #accuracy {
-
-            background: rgba(255,255,255,0.72);
-
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
-
-            padding: 4px 7px;
-
-            margin-bottom: 5px;
-
-            border-radius: 10px;
-
-            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-
-            font-size: 12px;
-
-            font-weight: 600;
-
-            white-space: nowrap;
-        }
+}
 
 
-        /* =========================================================
-           Curseur GPS
-           ========================================================= */
+/* --------------------------------------------------
+   Vitesse GPS
+   -------------------------------------------------- */
 
-        .gps-marker {
+#speed {
 
-            width: 16px;
-            height: 16px;
+  width: 170px;
 
-            background: #1976D2;
+  margin-top: 8px;
 
-            border: 3px solid white;
+  padding: 8px 0;
 
-            border-radius: 50%;
+  text-align: center;
 
-            box-shadow:
-                0 0 0 2px rgba(25,118,210,0.35),
-                0 2px 5px rgba(0,0,0,0.35);
-        }
+  font-size: 18px;
 
-    </style>
+  font-weight: bold;
+
+  color: #222;
+
+  border-top: 1px solid #ddd;
+
+}
+
+
+/* --------------------------------------------------
+   Précision GPS
+   -------------------------------------------------- */
+
+#accuracy {
+
+  width: 170px;
+
+  text-align: center;
+
+  font-size: 12px;
+
+  color: #666;
+
+}
+
+
+/* --------------------------------------------------
+   Nom du parcours
+   -------------------------------------------------- */
+
+#filename {
+
+  max-width: 170px;
+
+  margin-top: 5px;
+
+  font-size: 12px;
+
+  color: #555;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+
+}
+
+
+/* --------------------------------------------------
+   Input fichier caché
+   -------------------------------------------------- */
+
+#fileInput {
+  display: none;
+}
+
+</style>
 
 </head>
 
@@ -179,877 +165,991 @@
 <body>
 
 
-    <!-- =========================================================
-         CONTROLES
-         ========================================================= -->
-
-    <div id="controls">
-
-        <!-- Charger un parcours -->
-        <button id="loadButton"
-                title="Charger un parcours">
-            📂
-        </button>
-
-        <input type="file"
-               id="fileInput"
-               accept=".geojson,.json"
-               style="display:none;">
+<div id="map"></div>
 
 
-        <!-- Position GPS -->
-        <button id="gpsButton"
-                title="Ma position">
-            📍
-        </button>
+<div id="controls">
+
+  <button id="loadButton">
+    📂 Charger un parcours
+  </button>
+
+  <input
+    type="file"
+    id="fileInput"
+    accept=".geojson,.json"
+  >
+
+  <button id="gpsButton">
+    📍 Ma position
+  </button>
+
+  <button id="followButton">
+    ⛔ Arrêter le suivi
+  </button>
+
+  <div id="speed">
+    🚶 Vitesse : -- km/h
+  </div>
+
+  <div id="accuracy">
+    GPS : -- m
+  </div>
+
+  <div id="filename">
+    Aucun parcours chargé
+  </div>
+
+</div>
 
 
-        <!-- Vitesse -->
-        <div id="speed">
-            🚲 -- km/h
-        </div>
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+</script>
 
 
-        <!-- Précision GPS -->
-        <div id="accuracy">
-            📡 -- m
-        </div>
+<script>
 
 
-        <!-- Suivi automatique -->
-        <button id="followButton"
-                title="Arrêter le suivi">
-            ⛔
-        </button>
+// ==================================================
+// CARTE
+// ==================================================
 
-    </div>
+var map = L.map("map");
 
 
-    <!-- =========================================================
-         CARTE
-         ========================================================= -->
+L.tileLayer(
 
-    <div id="map"></div>
+  "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
 
+  {
 
-    <script>
+    maxZoom: 17,
 
+    attribution:
+      "&copy; OpenStreetMap contributors, " +
+      "SRTM | OpenTopoMap"
 
-        /* =========================================================
-           INITIALISATION DE LA CARTE
-           ========================================================= */
+  }
 
-        const map = L.map("map");
-
-
-        L.tileLayer(
-    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    {
-        maxZoom: 19,
-        attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">' +
-            'OpenStreetMap</a> contributors'
-    }
 ).addTo(map);
 
 
-        /* Vue initiale */
+// Position initiale
 
-        map.setView(
-            [45.184, 5.679],
-            13
+map.setView(
+  [45.184, 5.679],
+  13
+);
+
+
+// ==================================================
+// COULEUR DES PENTES
+// ==================================================
+
+function couleurPente(pente) {
+
+  pente = Number(pente);
+
+  if (!isFinite(pente))
+    return "#808080";
+
+  if (pente <= 2.5)
+    return "#00A000";
+
+  if (pente <= 7.5)
+    return "#FFD700";
+
+  if (pente <= 12.5)
+    return "#E00000";
+
+  return "#000000";
+
+}
+
+
+// ==================================================
+// COUCHE DU PARCOURS
+// ==================================================
+
+var parcoursLayer = null;
+
+
+// ==================================================
+// CHARGEMENT D'UN GEOJSON
+// ==================================================
+
+function chargerParcours(data, nomFichier) {
+
+
+  // Supprimer l'ancien parcours
+
+  if (parcoursLayer !== null) {
+
+    map.removeLayer(parcoursLayer);
+
+  }
+
+
+  // Créer le nouveau parcours
+
+  parcoursLayer = L.geoJSON(
+
+    data,
+
+    {
+
+      // ----------------------------------------------
+      // Style des tronçons
+      // ----------------------------------------------
+
+      style: function(feature) {
+
+        return {
+
+          color:
+            couleurPente(
+              feature.properties.pente_pct
+            ),
+
+          weight: 6,
+
+          opacity: 0.9
+
+        };
+
+      },
+
+
+      // ----------------------------------------------
+      // Informations au clic
+      // ----------------------------------------------
+
+      onEachFeature:
+        function(feature, layer) {
+
+
+          var p =
+            feature.properties;
+
+
+          var pente =
+            Number(p.pente_pct);
+
+
+          var debut =
+            Number(p.distance_debut);
+
+
+          var fin =
+            Number(p.distance_fin);
+
+
+          layer.bindPopup(
+
+            "<b>Tronçon " +
+            (p.id ?? "") +
+            "</b><br><br>" +
+
+            "Pente moyenne : " +
+
+            "<b>" +
+
+            (isFinite(pente)
+              ? pente.toFixed(1)
+              : "N/A") +
+
+            " %</b><br>" +
+
+            "Distance début : " +
+
+            (isFinite(debut)
+              ? debut.toFixed(0)
+              : "N/A") +
+
+            " m<br>" +
+
+            "Distance fin : " +
+
+            (isFinite(fin)
+              ? fin.toFixed(0)
+              : "N/A") +
+
+            " m"
+
+          );
+
+
+        }
+
+    }
+
+  ).addTo(map);
+
+
+  // ----------------------------------------------
+  // Ajustement automatique
+  // ----------------------------------------------
+
+  if (
+    parcoursLayer.getBounds().isValid()
+  ) {
+
+    map.fitBounds(
+
+      parcoursLayer.getBounds(),
+
+      {
+        padding: [30, 30]
+      }
+
+    );
+
+  }
+
+
+  // Nom du fichier
+
+  document.getElementById(
+    "filename"
+  ).textContent =
+    nomFichier;
+
+}
+
+
+// ==================================================
+// BOUTON CHARGER
+// ==================================================
+
+document
+  .getElementById("loadButton")
+  .addEventListener(
+
+    "click",
+
+    function() {
+
+      document
+        .getElementById("fileInput")
+        .click();
+
+    }
+
+  );
+
+
+// ==================================================
+// LECTURE DU FICHIER
+// ==================================================
+
+document
+  .getElementById("fileInput")
+  .addEventListener(
+
+    "change",
+
+    function(event) {
+
+
+      var file =
+        event.target.files[0];
+
+
+      if (!file)
+        return;
+
+
+      var reader =
+        new FileReader();
+
+
+      reader.onload =
+        function(e) {
+
+
+          try {
+
+
+            var data =
+              JSON.parse(
+                e.target.result
+              );
+
+
+            chargerParcours(
+              data,
+              file.name
+            );
+
+
+          }
+
+          catch(error) {
+
+
+            alert(
+              "Impossible de lire le fichier GeoJSON."
+            );
+
+
+            console.error(
+              error
+            );
+
+
+          }
+
+        };
+
+
+      reader.readAsText(file);
+
+    }
+
+  );
+
+
+// ==================================================
+// GPS
+// ==================================================
+
+var positionMarker = null;
+
+var positionCircle = null;
+
+var gpsWatch = null;
+
+
+// ==================================================
+// SUIVI AUTOMATIQUE
+// ==================================================
+
+var suivreGPS = true;
+
+
+// ==================================================
+// POSITION GPS PRECEDENTE
+// ==================================================
+
+var dernierePosition = null;
+
+
+// ==================================================
+// HISTORIQUE DES VITESSES
+// ==================================================
+
+var historiqueVitesses = [];
+
+var nombreMesuresVitesse = 5;
+
+
+// ==================================================
+// CALCUL DE LA VITESSE
+// ==================================================
+
+function calculerVitesse(position) {
+
+
+  var lat =
+    position.coords.latitude;
+
+
+  var lon =
+    position.coords.longitude;
+
+
+  var timestamp =
+    position.timestamp;
+
+
+  // Première mesure
+
+  if (
+    dernierePosition === null
+  ) {
+
+    dernierePosition = {
+
+      lat: lat,
+
+      lon: lon,
+
+      timestamp: timestamp
+
+    };
+
+    return null;
+
+  }
+
+
+  // Temps écoulé en secondes
+
+  var dt =
+    (timestamp -
+     dernierePosition.timestamp) / 1000;
+
+
+  // Vérification
+
+  if (
+    dt <= 0
+  ) {
+
+    return null;
+
+  }
+
+
+  // Distance en mètres
+
+  var distance =
+    map.distance(
+
+      [
+        dernierePosition.lat,
+        dernierePosition.lon
+      ],
+
+      [
+        lat,
+        lon
+      ]
+
+    );
+
+
+  // Mémoriser la nouvelle position
+
+  dernierePosition = {
+
+    lat: lat,
+
+    lon: lon,
+
+    timestamp: timestamp
+
+  };
+
+
+  // Ignorer les déplacements GPS
+  // inférieurs à 3 mètres
+
+  if (
+    distance < 3
+  ) {
+
+    return 0;
+
+  }
+
+
+  // vitesse m/s
+
+  var vitesseMS =
+    distance / dt;
+
+
+  // conversion en km/h
+
+  var vitesseKMH =
+    vitesseMS * 3.6;
+
+
+  return vitesseKMH;
+
+}
+
+
+// ==================================================
+// MISE À JOUR DE LA VITESSE
+// ==================================================
+
+function mettreAJourVitesse(position) {
+
+
+  var vitesse =
+    calculerVitesse(position);
+
+
+  if (
+    vitesse === null
+  ) {
+
+    return;
+
+  }
+
+
+  // Ajouter à l'historique
+
+  historiqueVitesses.push(
+    vitesse
+  );
+
+
+  // Conserver seulement
+  // les dernières mesures
+
+  if (
+    historiqueVitesses.length >
+    nombreMesuresVitesse
+  ) {
+
+    historiqueVitesses.shift();
+
+  }
+
+
+  // Moyenne glissante
+
+  var somme =
+    historiqueVitesses.reduce(
+
+      function(a, b) {
+        return a + b;
+      },
+
+      0
+
+    );
+
+
+  var vitesseMoyenne =
+    somme /
+    historiqueVitesses.length;
+
+
+  // Affichage
+
+  document.getElementById(
+    "speed"
+  ).textContent =
+
+    "🚶 Vitesse : " +
+
+    vitesseMoyenne.toFixed(1) +
+
+    " km/h";
+
+}
+
+
+// ==================================================
+// MISE À JOUR POSITION
+// ==================================================
+
+function mettreAJourPosition(
+  position
+) {
+
+
+  var lat =
+    position.coords.latitude;
+
+
+  var lon =
+    position.coords.longitude;
+
+
+  var accuracy =
+    position.coords.accuracy;
+
+
+  // ----------------------------------------------
+  // Première position
+  // ----------------------------------------------
+
+  if (
+    positionMarker === null
+  ) {
+
+
+    positionMarker =
+      L.marker(
+
+        [lat, lon],
+
+        {
+          title: "Ma position"
+        }
+
+      ).addTo(map);
+
+
+    positionCircle =
+      L.circle(
+
+        [lat, lon],
+
+        {
+
+          radius: accuracy,
+
+          weight: 2,
+
+          fillOpacity: 0.15
+
+        }
+
+      ).addTo(map);
+
+
+  }
+
+  else {
+
+
+    positionMarker.setLatLng(
+      [lat, lon]
+    );
+
+
+    positionCircle.setLatLng(
+      [lat, lon]
+    );
+
+
+    positionCircle.setRadius(
+      accuracy
+    );
+
+
+  }
+
+
+  // ----------------------------------------------
+  // Mise à jour vitesse
+  // ----------------------------------------------
+
+  mettreAJourVitesse(
+    position
+  );
+
+
+  // ----------------------------------------------
+  // Affichage précision
+  // ----------------------------------------------
+
+  document.getElementById(
+    "accuracy"
+  ).textContent =
+
+    "GPS : " +
+
+    Math.round(accuracy) +
+
+    " m";
+
+
+  // ----------------------------------------------
+  // Popup
+  // ----------------------------------------------
+
+  positionMarker.bindPopup(
+
+    "<b>Ma position</b><br>" +
+
+    "Latitude : " +
+
+    lat.toFixed(6) +
+
+    "<br>" +
+
+    "Longitude : " +
+
+    lon.toFixed(6) +
+
+    "<br>" +
+
+    "Précision : " +
+
+    Math.round(accuracy) +
+
+    " m"
+
+  );
+
+
+  // =================================================
+  // SUIVI DE LA POSITION
+  // =================================================
+
+  if (
+    suivreGPS
+  ) {
+
+
+    map.panTo(
+
+      [lat, lon],
+
+      {
+
+        animate: true,
+
+        duration: 0.5
+
+      }
+
+    );
+
+  }
+
+}
+
+
+// ==================================================
+// DEMARRAGE GPS
+// ==================================================
+
+function demarrerGPS() {
+
+
+  if (
+    !navigator.geolocation
+  ) {
+
+
+    alert(
+      "La géolocalisation n'est pas disponible."
+    );
+
+
+    return;
+
+  }
+
+
+  // Activer le suivi
+
+  suivreGPS = true;
+
+
+  document.getElementById(
+    "followButton"
+  ).textContent =
+    "⛔ Arrêter le suivi";
+
+
+  // Réinitialiser l'historique vitesse
+
+  dernierePosition = null;
+
+  historiqueVitesses = [];
+
+
+  document.getElementById(
+    "speed"
+  ).textContent =
+    "🚶 Vitesse : -- km/h";
+
+
+  // ----------------------------------------------
+  // Première position
+  // ----------------------------------------------
+
+  navigator.geolocation.getCurrentPosition(
+
+    function(position) {
+
+
+      mettreAJourPosition(
+        position
+      );
+
+
+      map.setView(
+
+        [
+
+          position.coords.latitude,
+
+          position.coords.longitude
+
+        ],
+
+        16
+
+      );
+
+
+    },
+
+
+    function(error) {
+
+
+      alert(
+
+        "Impossible d'obtenir la position GPS : " +
+
+        error.message
+
+      );
+
+
+    },
+
+
+    {
+
+      enableHighAccuracy: true,
+
+      maximumAge: 5000,
+
+      timeout: 10000
+
+    }
+
+  );
+
+
+  // ----------------------------------------------
+  // Suivi continu
+  // ----------------------------------------------
+
+  if (
+    gpsWatch !== null
+  ) {
+
+    navigator.geolocation.clearWatch(
+      gpsWatch
+    );
+
+  }
+
+
+  gpsWatch =
+    navigator.geolocation.watchPosition(
+
+      function(position) {
+
+
+        mettreAJourPosition(
+          position
         );
 
 
-        /* =========================================================
-           VARIABLES
-           ========================================================= */
-
-        let parcoursLayer = null;
-
-        let positionMarker = null;
-
-        let positionCircle = null;
-
-        let gpsWatch = null;
+      },
 
 
-        /* Suivi automatique de la carte */
+      function(error) {
 
-        let suivreGPS = true;
+        console.log(
+          "Erreur GPS :",
+          error.message
+        );
 
-
-        /* Dernière position utilisée pour calculer la vitesse */
-
-        let dernierePosition = null;
-
-
-        /* Historique des vitesses */
-
-        let historiqueVitesses = [];
+      },
 
 
-        /* =========================================================
-           COULEURS DES CLASSES DE PENTE
-           ========================================================= */
+      {
 
-        function couleurPente(pente) {
+        enableHighAccuracy: true,
 
-            if (pente === null || pente === undefined || isNaN(pente)) {
+        maximumAge: 5000,
 
-                return "#808080";
+        timeout: 10000
 
+      }
+
+    );
+
+}
+
+
+// ==================================================
+// ARRET DU SUIVI
+// ==================================================
+
+function arreterSuiviGPS() {
+
+
+  suivreGPS = false;
+
+
+  document.getElementById(
+    "followButton"
+  ).textContent =
+    "📍 Reprendre le suivi";
+
+
+}
+
+
+// ==================================================
+// BOUTON GPS
+// ==================================================
+
+document
+  .getElementById("gpsButton")
+  .addEventListener(
+
+    "click",
+
+    demarrerGPS
+
+  );
+
+
+// ==================================================
+// BOUTON SUIVI
+// ==================================================
+
+document
+  .getElementById("followButton")
+  .addEventListener(
+
+    "click",
+
+    function() {
+
+
+      if (
+        suivreGPS
+      ) {
+
+        arreterSuiviGPS();
+
+      }
+
+      else {
+
+        suivreGPS = true;
+
+
+        document.getElementById(
+          "followButton"
+        ).textContent =
+          "⛔ Arrêter le suivi";
+
+
+        // Recentrer immédiatement
+
+        if (
+          positionMarker !== null
+        ) {
+
+          map.panTo(
+            positionMarker.getLatLng(),
+            {
+              animate: true,
+              duration: 0.5
             }
-
-            pente = Number(pente);
-
-
-            if (pente <= 2.5) {
-
-                return "#00A000";
-
-            }
-
-            else if (pente <= 7.5) {
-
-                return "#FFD700";
-
-            }
-
-            else if (pente <= 12.5) {
-
-                return "#E00000";
-
-            }
-
-            else {
-
-                return "#000000";
-
-            }
-        }
-
-
-        /* =========================================================
-           CHARGEMENT D'UN PARCOURS GEOJSON
-           ========================================================= */
-
-        function chargerParcours(data, nomFichier) {
-
-
-            /* Supprimer l'ancien parcours */
-
-            if (parcoursLayer) {
-
-                map.removeLayer(parcoursLayer);
-
-            }
-
-
-            /* Créer le nouveau parcours */
-
-            parcoursLayer = L.geoJSON(
-                data,
-                {
-
-                    style: function(feature) {
-
-                        const pente =
-                            feature.properties
-                                ? feature.properties.pente_pct
-                                : null;
-
-                        return {
-
-                            color: couleurPente(pente),
-
-                            weight: 6,
-
-                            opacity: 0.9
-
-                        };
-                    },
-
-
-                    onEachFeature: function(feature, layer) {
-
-                        const p =
-                            feature.properties || {};
-
-
-                        let contenu = "";
-
-
-                        if (p.id !== undefined) {
-
-                            contenu +=
-                                "<b>Tronçon :</b> " +
-                                p.id +
-                                "<br>";
-
-                        }
-
-
-                        if (p.pente_pct !== undefined) {
-
-                            contenu +=
-                                "<b>Pente :</b> " +
-                                p.pente_pct +
-                                " %" +
-                                "<br>";
-
-                        }
-
-
-                        if (p.distance_debut !== undefined) {
-
-                            contenu +=
-                                "<b>Distance début :</b> " +
-                                p.distance_debut +
-                                "<br>";
-
-                        }
-
-
-                        if (p.distance_fin !== undefined) {
-
-                            contenu +=
-                                "<b>Distance fin :</b> " +
-                                p.distance_fin;
-
-                        }
-
-
-                        if (contenu !== "") {
-
-                            layer.bindPopup(contenu);
-
-                        }
-
-                    }
-
-                }
-            );
-
-
-            parcoursLayer.addTo(map);
-
-
-            /* Adapter la carte au parcours */
-
-            if (parcoursLayer.getBounds().isValid()) {
-
-                map.fitBounds(
-                    parcoursLayer.getBounds(),
-                    {
-                        padding: [30, 30]
-                    }
-                );
-
-            }
+          );
 
         }
 
+      }
 
-        /* =========================================================
-           BOUTON CHARGER
-           ========================================================= */
+    }
 
-        document
-            .getElementById("loadButton")
-            .addEventListener(
-                "click",
-                function() {
+  );
 
-                    document
-                        .getElementById("fileInput")
-                        .click();
 
-                }
-            );
-
-
-        /* =========================================================
-           LECTURE DU FICHIER GEOJSON
-           ========================================================= */
-
-        document
-            .getElementById("fileInput")
-            .addEventListener(
-                "change",
-                function(event) {
-
-
-                    const fichier =
-                        event.target.files[0];
-
-
-                    if (!fichier) {
-
-                        return;
-
-                    }
-
-
-                    const lecteur =
-                        new FileReader();
-
-
-                    lecteur.onload =
-                        function(e) {
-
-                            try {
-
-                                const data =
-                                    JSON.parse(
-                                        e.target.result
-                                    );
-
-
-                                chargerParcours(
-                                    data,
-                                    fichier.name
-                                );
-
-                            }
-
-
-                            catch (erreur) {
-
-                                alert(
-                                    "Impossible de lire le fichier GeoJSON.\n\n" +
-                                    erreur.message
-                                );
-
-                            }
-
-                        };
-
-
-                    lecteur.readAsText(fichier);
-
-                }
-            );
-
-
-        /* =========================================================
-           MISE A JOUR DE LA VITESSE
-           ========================================================= */
-
-        function mettreAJourVitesse(position) {
-
-
-            if (dernierePosition === null) {
-
-                dernierePosition = position;
-
-                return;
-
-            }
-
-
-            const lat1 =
-                dernierePosition.coords.latitude;
-
-            const lon1 =
-                dernierePosition.coords.longitude;
-
-
-            const lat2 =
-                position.coords.latitude;
-
-            const lon2 =
-                position.coords.longitude;
-
-
-            /* Temps écoulé en secondes */
-
-            const dt =
-                (
-                    position.timestamp -
-                    dernierePosition.timestamp
-                ) / 1000;
-
-
-            if (dt <= 0) {
-
-                return;
-
-            }
-
-
-            /* Distance entre les deux positions */
-
-            const distance =
-                map.distance(
-                    [lat1, lon1],
-                    [lat2, lon2]
-                );
-
-
-            /*
-             * On considère qu'un déplacement inférieur
-             * à 3 m correspond au bruit GPS.
-             */
-
-            let vitesse;
-
-
-            if (distance < 3) {
-
-                vitesse = 0;
-
-            }
-
-            else {
-
-                vitesse =
-                    (distance / dt) * 3.6;
-
-            }
-
-
-            /* Ajouter à l'historique */
-
-            historiqueVitesses.push(vitesse);
-
-
-            /*
-             * Conserver seulement les
-             * 5 dernières mesures
-             */
-
-            if (historiqueVitesses.length > 5) {
-
-                historiqueVitesses.shift();
-
-            }
-
-
-            /* Moyenne glissante */
-
-            const somme =
-                historiqueVitesses.reduce(
-                    function(a, b) {
-
-                        return a + b;
-
-                    },
-                    0
-                );
-
-
-            const vitesseMoyenne =
-                somme /
-                historiqueVitesses.length;
-
-
-            /* Affichage */
-
-            document
-                .getElementById("speed")
-                .textContent =
-                    "🚲 " +
-                    vitesseMoyenne.toFixed(1) +
-                    " km/h";
-
-
-            /* Mémoriser la position */
-
-            dernierePosition = position;
-
-        }
-
-
-        /* =========================================================
-           MISE A JOUR DE LA POSITION GPS
-           ========================================================= */
-
-        function mettreAJourPosition(position) {
-
-
-            const lat =
-                position.coords.latitude;
-
-            const lon =
-                position.coords.longitude;
-
-            const precision =
-                position.coords.accuracy;
-
-
-            /* =====================================================
-               VITESSE
-               ===================================================== */
-
-            mettreAJourVitesse(position);
-
-
-            /* =====================================================
-               PRECISION GPS
-               ===================================================== */
-
-            document
-                .getElementById("accuracy")
-                .textContent =
-                    "📡 " +
-                    Math.round(precision) +
-                    " m";
-
-
-            /* =====================================================
-               MARQUEUR GPS
-               ===================================================== */
-
-            if (!positionMarker) {
-
-
-                const iconeGPS =
-                    L.divIcon(
-                        {
-                            className: "",
-
-                            html:
-                                '<div class="gps-marker"></div>',
-
-                            iconSize: [22, 22],
-
-                            iconAnchor: [11, 11]
-
-                        }
-                    );
-
-
-                positionMarker =
-                    L.marker(
-                        [lat, lon],
-                        {
-                            icon: iconeGPS
-                        }
-                    ).addTo(map);
-
-
-                positionMarker.bindPopup(
-                    "Position GPS"
-                );
-
-            }
-
-
-            else {
-
-                positionMarker.setLatLng(
-                    [lat, lon]
-                );
-
-            }
-
-
-            /* =====================================================
-               CERCLE DE PRECISION
-               ===================================================== */
-
-            if (!positionCircle) {
-
-
-                positionCircle =
-                    L.circle(
-                        [lat, lon],
-                        {
-
-                            radius: precision,
-
-                            color: "#1976D2",
-
-                            weight: 1,
-
-                            opacity: 0.5,
-
-                            fillColor: "#1976D2",
-
-                            fillOpacity: 0.12
-
-                        }
-                    ).addTo(map);
-
-            }
-
-
-            else {
-
-                positionCircle.setLatLng(
-                    [lat, lon]
-                );
-
-
-                positionCircle.setRadius(
-                    precision
-                );
-
-            }
-
-
-            /* =====================================================
-               SUIVI AUTOMATIQUE DE LA CARTE
-               ===================================================== */
-
-            if (suivreGPS) {
-
-
-                map.panTo(
-                    [lat, lon],
-                    {
-                        animate: true,
-
-                        duration: 0.5
-                    }
-                );
-
-            }
-
-        }
-
-
-        /* =========================================================
-           DEMARRER LE GPS
-           ========================================================= */
-
-        function demarrerGPS() {
-
-
-            if (!navigator.geolocation) {
-
-                alert(
-                    "La géolocalisation n'est pas disponible sur cet appareil."
-                );
-
-                return;
-
-            }
-
-
-            /* Activer le suivi */
-
-            suivreGPS = true;
-
-
-            /* Réinitialiser le calcul de vitesse */
-
-            dernierePosition = null;
-
-            historiqueVitesses = [];
-
-
-            document
-                .getElementById("speed")
-                .textContent =
-                    "🚲 -- km/h";
-
-
-            /* =====================================================
-               PREMIERE POSITION
-               ===================================================== */
-
-            navigator.geolocation.getCurrentPosition(
-
-                function(position) {
-
-
-                    mettreAJourPosition(
-                        position
-                    );
-
-
-                    map.setView(
-                        [
-                            position.coords.latitude,
-                            position.coords.longitude
-                        ],
-                        16
-                    );
-
-                },
-
-
-                function(erreur) {
-
-                    alert(
-                        "Impossible d'obtenir la position GPS.\n\n" +
-                        erreur.message
-                    );
-
-                },
-
-
-                {
-
-                    enableHighAccuracy: true,
-
-                    maximumAge: 5000,
-
-                    timeout: 10000
-
-                }
-
-            );
-
-
-            /* =====================================================
-               SUIVI CONTINU
-               ===================================================== */
-
-            if (gpsWatch !== null) {
-
-                navigator.geolocation.clearWatch(
-                    gpsWatch
-                );
-
-            }
-
-
-            gpsWatch =
-                navigator.geolocation.watchPosition(
-
-                    function(position) {
-
-                        mettreAJourPosition(
-                            position
-                        );
-
-                    },
-
-
-                    function(erreur) {
-
-                        console.warn(
-                            "Erreur GPS :",
-                            erreur
-                        );
-
-                    },
-
-
-                    {
-
-                        enableHighAccuracy: true,
-
-                        maximumAge: 5000,
-
-                        timeout: 10000
-
-                    }
-
-                );
-
-
-            /* Etat du bouton */
-
-            document
-                .getElementById("followButton")
-                .textContent = "⛔";
-
-
-            document
-                .getElementById("followButton")
-                .title =
-                    "Arrêter le suivi";
-
-        }
-
-
-        /* =========================================================
-           ARRETER LE SUIVI DE LA CARTE
-           ========================================================= */
-
-        function arreterSuiviGPS() {
-
-
-            suivreGPS = false;
-
-
-            document
-                .getElementById("followButton")
-                .textContent = "▶️";
-
-
-            document
-                .getElementById("followButton")
-                .title =
-                    "Reprendre le suivi";
-
-        }
-
-
-        /* =========================================================
-           BOUTON GPS
-           ========================================================= */
-
-        document
-            .getElementById("gpsButton")
-            .addEventListener(
-                "click",
-                function() {
-
-                    demarrerGPS();
-
-                }
-            );
-
-
-        /* =========================================================
-           BOUTON SUIVI
-           ========================================================= */
-
-        document
-            .getElementById("followButton")
-            .addEventListener(
-                "click",
-                function() {
-
-
-                    if (suivreGPS) {
-
-                        arreterSuiviGPS();
-
-                    }
-
-                    else {
-
-
-                        suivreGPS = true;
-
-
-                        /*
-                         * Si nous avons déjà une position GPS,
-                         * recentrer immédiatement la carte.
-                         */
-
-                        if (positionMarker) {
-
-                            map.panTo(
-                                positionMarker.getLatLng(),
-                                {
-                                    animate: true,
-
-                                    duration: 0.5
-                                }
-                            );
-
-                        }
-
-
-                        this.textContent = "⛔";
-
-                        this.title =
-                            "Arrêter le suivi";
-
-                    }
-
-                }
-            );
-
-
-    </script>
+</script>
 
 </body>
 
