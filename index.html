@@ -1,823 +1,1629 @@
 <!DOCTYPE html>
-
 <html lang="fr">
-
 <head>
-
-<meta charset="UTF-8">
-
-<meta name="viewport"
-   content="width=device-width,
-            initial-scale=1.0,
-            maximum-scale=1.0,
-            user-scalable=no">
-
-<title>RRando</title>
-
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-/>
-
-<style>
-
-/* ==================================================
-   CARTE
-   ================================================== */
-
-html, body {
-
-  margin: 0;
-  padding: 0;
-
-  width: 100%;
-  height: 100%;
-
-}
-
-#map {
-
-  width: 100%;
-  height: 100%;
-
-}
-
-
-/* ==================================================
-   COMMANDES GPS COMPACTES
-   ================================================== */
-
-#controls {
-
-  position: absolute;
-
-  top: 10px;
-  left: 10px;
-
-  z-index: 1000;
-
-  display: flex;
-
-  flex-direction: column;
-
-  align-items: flex-start;
-
-}
-
-
-/* ==================================================
-   BOUTONS
-   ================================================== */
-
-#loadButton,
-#gpsButton,
-#followButton {
-
-  display: block;
-
-  width: 36px;
-  height: 36px;
-
-  margin: 0 0 6px 0;
-
-  padding: 0;
-
-  border:
-    1px solid rgba(255,255,255,0.75);
-
-  border-radius: 50%;
-
-  background:
-    rgba(255,255,255,0.72);
-
-  backdrop-filter: blur(4px);
-
-  -webkit-backdrop-filter: blur(4px);
-
-  box-shadow:
-    0 2px 6px rgba(0,0,0,0.30);
-
-  font-size: 18px;
-
-  line-height: 34px;
-
-  text-align: center;
-
-  cursor: pointer;
-
-  transition:
-    background 0.15s ease,
-    transform 0.15s ease;
-
-}
-
-
-#loadButton:hover,
-#gpsButton:hover,
-#followButton:hover {
-
-  background:
-    rgba(255,255,255,0.90);
-
-  transform: scale(1.08);
-
-}
-
-
-#loadButton:active,
-#gpsButton:active,
-#followButton:active {
-
-  transform: scale(0.92);
-
-}
-
-
-/* ==================================================
-   VITESSE GPS
-   ================================================== */
-
-#speed {
-
-  margin: 0 0 5px 0;
-
-  padding: 4px 7px;
-
-  background:
-    rgba(255,255,255,0.72);
-
-  backdrop-filter: blur(4px);
-
-  -webkit-backdrop-filter: blur(4px);
-
-  border-radius: 10px;
-
-  box-shadow:
-    0 2px 6px rgba(0,0,0,0.25);
-
-  font-size: 12px;
-
-  font-weight: 600;
-
-  white-space: nowrap;
-
-  color: #222;
-
-}
-
-
-/* ==================================================
-   PRECISION GPS
-   ================================================== */
-
-#accuracy {
-
-  margin: 0 0 6px 0;
-
-  padding: 4px 7px;
-
-  background:
-    rgba(255,255,255,0.72);
-
-  backdrop-filter: blur(4px);
-
-  -webkit-backdrop-filter: blur(4px);
-
-  border-radius: 10px;
-
-  box-shadow:
-    0 2px 6px rgba(0,0,0,0.25);
-
-  font-size: 11px;
-
-  font-weight: 600;
-
-  white-space: nowrap;
-
-  color: #555;
-
-}
-
-
-/* ==================================================
-   INPUT FICHIER
-   ================================================== */
-
-#fileInput {
-
-  display: none;
-
-}
-
-</style>
-
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <title>RRando – Analyse de pente</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: #eee;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .tool-button {
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      border: 1px solid rgba(255,255,255,.85);
+      border-radius: 50%;
+      background: rgba(255,255,255,.78);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      box-shadow: 0 2px 7px rgba(0,0,0,.30);
+      font-size: 19px;
+      line-height: 36px;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .tool-button:active {
+      transform: scale(.94);
+    }
+
+    #status,
+    #info {
+      max-width: 270px;
+      padding: 7px 9px;
+      border-radius: 10px;
+      background: rgba(255,255,255,.84);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      box-shadow: 0 2px 7px rgba(0,0,0,.25);
+      font-size: 12px;
+      line-height: 1.35;
+      color: #222;
+    }
+
+    #status {
+      display: none;
+    }
+
+    #info {
+      display: none;
+    }
+
+    #legend {
+      position: absolute;
+      right: 10px;
+      bottom: 20px;
+      z-index: 1000;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(255,255,255,.84);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      box-shadow: 0 2px 7px rgba(0,0,0,.25);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .legend-color {
+      width: 22px;
+      height: 6px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    .leaflet-control-attribution {
+      font-size: 9px !important;
+    }
+  </style>
 </head>
 
 <body>
 
-<!-- ==================================================
-     CARTE
-     ================================================== -->
-
 <div id="map"></div>
 
-<!-- ==================================================
-     COMMANDES
-     ================================================== -->
-
 <div id="controls">
+  <button id="loadButton"
+          class="tool-button"
+          title="Charger un fichier GPX">📂</button>
 
-<button
- id="loadButton"
- title="Charger un parcours">
+  <input type="file"
+         id="fileInput"
+         accept=".gpx,application/gpx+xml,application/xml,text/xml">
 
-```
-📂
-```
+  <button id="clearButton"
+          class="tool-button"
+          title="Effacer le parcours">🗑️</button>
 
-  </button>
-
-<input
- type="file"
- id="fileInput"
- accept=".geojson,.json">
-
-<button
- id="gpsButton"
- title="Ma position">
-
-```
-📍
-```
-
-  </button>
-
-  <div id="speed">
-
-```
-🚲 -- km/h
-```
-
-  </div>
-
-  <div id="accuracy">
-
-```
-📡 -- m
-```
-
-  </div>
-
-<button
- id="followButton"
- title="Arrêter le suivi">
-
-```
-⛔
-```
-
-  </button>
-
+  <div id="status"></div>
+  <div id="info"></div>
 </div>
 
-<!-- ==================================================
-     LEAFLET
-     ================================================== -->
+<div id="legend">
+  <div><b>Pente moyenne</b></div>
+  <div class="legend-row">
+    <span class="legend-color" style="background:#00A000"></span> ≤ 3 %
+  </div>
+  <div class="legend-row">
+    <span class="legend-color" style="background:#FFD700"></span> 3–6 %
+  </div>
+  <div class="legend-row">
+    <span class="legend-color" style="background:#FFA500"></span> 6–9 %
+  </div>
+  <div class="legend-row">
+    <span class="legend-color" style="background:#E00000"></span> 9–12 %
+  </div>
+  <div class="legend-row">
+    <span class="legend-color" style="background:#000000"></span> &gt; 12 %
+  </div>
+</div>
 
-<script
-  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
-</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- PROJ4 : permet de reproduire la projection EPSG:2154 utilisée dans R -->
+<script src="https://unpkg.com/proj4@2.11.0/dist/proj4.js"></script>
 
 <script>
+"use strict";
 
+/* ============================================================
+   PARAMETRES PRINCIPAUX
+   ============================================================ */
 
-// ==================================================
-// CARTE
-// ==================================================
+const SPAN_LOESS = 0.05;
+const LOESS_DEGREE = 2;
 
-var map = L.map("map");
+const PELT_PENALTY_FACTOR = 5;
+const PELT_MINSEG = 1;
 
+const IGN_RESOURCE = "ign_rge_alti_wld";
+const IGN_URL =
+  "https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json";
+
+const MAX_IGN_POINTS = 5000;
+
+/* Couleurs identiques au script R */
+const SLOPE_COLORS = [
+  "#00A000",   // <= 3
+  "#FFD700",   // 3-6
+  "#FFA500",   // 6-9
+  "#E00000",   // 9-12
+  "#000000"    // > 12
+];
+
+/* ============================================================
+   CARTE
+   ============================================================ */
+
+const map = L.map("map");
 
 L.tileLayer(
-
   "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-
   {
-
     maxZoom: 17,
-
     attribution:
       "&copy; OpenStreetMap contributors, " +
       "SRTM | OpenTopoMap"
-
   }
-
 ).addTo(map);
 
+map.setView([45.184, 5.679], 13);
 
-// Position initiale
+/* ============================================================
+   VARIABLES
+   ============================================================ */
 
-map.setView(
+let routeLayers = [];
+let routeBounds = null;
 
-  [45.184, 5.679],
+/* ============================================================
+   OUTILS INTERFACE
+   ============================================================ */
 
-  13
+const statusDiv = document.getElementById("status");
+const infoDiv = document.getElementById("info");
+const fileInput = document.getElementById("fileInput");
 
-);
-
-
-// ==================================================
-// COULEUR DES PENTES
-// ==================================================
-
-function couleurPente(pente) {
-
-  pente = Number(pente);
-
-
-  if (!isFinite(pente))
-
-    return "#808080";
-
-
-  if (pente <= 2.5)
-
-    return "#00A000";
-
-
-  if (pente <= 7.5)
-
-    return "#FFD700";
-
-
-  if (pente <= 12.5)
-
-    return "#E00000";
-
-
-  return "#000000";
-
+function setStatus(text, visible = true) {
+  statusDiv.innerHTML = text;
+  statusDiv.style.display = visible ? "block" : "none";
 }
 
+function setInfo(text, visible = true) {
+  infoDiv.innerHTML = text;
+  infoDiv.style.display = visible ? "block" : "none";
+}
 
-// ==================================================
-// COUCHE DU PARCOURS
-// ==================================================
+function clearMap() {
+  routeLayers.forEach(layer => map.removeLayer(layer));
+  routeLayers = [];
+  routeBounds = null;
+  setStatus("", false);
+  setInfo("", false);
+}
 
-var parcoursLayer = null;
+/* ============================================================
+   CHARGEMENT GPX
+   ============================================================ */
 
+document.getElementById("loadButton").addEventListener("click", () => {
+  fileInput.value = "";
+  fileInput.click();
+});
 
-// ==================================================
-// CHARGEMENT D'UN GEOJSON
-// ==================================================
+document.getElementById("clearButton").addEventListener("click", clearMap);
 
-function chargerParcours(data, nomFichier) {
+fileInput.addEventListener("change", async function () {
+  const file = this.files[0];
 
+  if (!file) return;
 
-  // ----------------------------------------------
-  // Supprimer l'ancien parcours
-  // ----------------------------------------------
+  try {
+    clearMap();
 
-  if (parcoursLayer !== null) {
+    setStatus("Lecture du GPX…");
 
-    map.removeLayer(parcoursLayer);
+    const text = await file.text();
 
-  }
+    const points = parseGPX(text);
 
-
-  // ----------------------------------------------
-  // Créer le nouveau parcours
-  // ----------------------------------------------
-
-  parcoursLayer = L.geoJSON(
-
-    data,
-
-    {
-
-      // --------------------------------------------
-      // Style des tronçons
-      // --------------------------------------------
-
-      style: function(feature) {
-
-        return {
-
-          color:
-            couleurPente(
-              feature.properties.pente_pct
-            ),
-
-          weight: 6,
-
-          opacity: 0.9
-
-        };
-
-      },
-
-
-      // --------------------------------------------
-      // Informations au clic
-      // --------------------------------------------
-
-      onEachFeature:
-        function(feature, layer) {
-
-
-          var p =
-            feature.properties;
-
-
-          var pente =
-            Number(p.pente_pct);
-
-
-          var debut =
-            Number(p.distance_debut);
-
-
-          var fin =
-            Number(p.distance_fin);
-
-
-          layer.bindPopup(
-
-            "<b>Tronçon " +
-
-            (p.id ?? "") +
-
-            "</b><br><br>" +
-
-
-            "Pente moyenne : " +
-
-
-            "<b>" +
-
-
-            (isFinite(pente)
-
-              ? pente.toFixed(1)
-
-              : "N/A") +
-
-
-            " %</b><br>" +
-
-
-            "Distance début : " +
-
-
-            (isFinite(debut)
-
-              ? debut.toFixed(0)
-
-              : "N/A") +
-
-
-            " m<br>" +
-
-
-            "Distance fin : " +
-
-
-            (isFinite(fin)
-
-              ? fin.toFixed(0)
-
-              : "N/A") +
-
-
-            " m"
-
-          );
-
-
-        }
-
+    if (points.length < 3) {
+      throw new Error(
+        "Le GPX ne contient pas suffisamment de points de trace."
+      );
     }
 
-  ).addTo(map);
+    setStatus(
+      "GPX chargé : " + points.length.toLocaleString("fr-FR") +
+      " points.<br>Calcul des distances…"
+    );
 
+    await traiterParcours(points, file.name);
 
-  // ----------------------------------------------
-  // Ajustement automatique
-  // ----------------------------------------------
+  } catch (error) {
+    console.error(error);
 
-  if (
+    setStatus(
+      "<b>Erreur</b><br>" +
+      escapeHtml(error.message || String(error))
+    );
+  }
+});
 
-    parcoursLayer.getBounds().isValid()
+/* ============================================================
+   LECTURE DU GPX
+   ============================================================ */
 
+function parseGPX(text) {
+
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(text, "application/xml");
+
+  const parseError = xml.querySelector("parsererror");
+
+  if (parseError) {
+    throw new Error("Le fichier GPX n'est pas un XML valide.");
+  }
+
+  let trkpts = Array.from(xml.getElementsByTagNameNS("*", "trkpt"));
+
+  /* Certains GPX très simples peuvent être sans namespace. */
+  if (trkpts.length === 0) {
+    trkpts = Array.from(xml.getElementsByTagName("trkpt"));
+  }
+
+  const points = [];
+
+  trkpts.forEach(pt => {
+
+    const lat = parseFloat(pt.getAttribute("lat"));
+    const lon = parseFloat(pt.getAttribute("lon"));
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      return;
+    }
+
+    const eleNode = pt.getElementsByTagNameNS("*", "ele")[0]
+      || pt.getElementsByTagName("ele")[0];
+
+    const timeNode = pt.getElementsByTagNameNS("*", "time")[0]
+      || pt.getElementsByTagName("time")[0];
+
+    let ele = NaN;
+    let time = null;
+
+    if (eleNode) {
+      const z = parseFloat(eleNode.textContent);
+      if (Number.isFinite(z)) ele = z;
+    }
+
+    if (timeNode) {
+      const t = Date.parse(timeNode.textContent.trim());
+      if (Number.isFinite(t)) time = t / 1000;
+    }
+
+    points.push({
+      lat: lat,
+      lon: lon,
+      ele: ele,
+      time: time
+    });
+  });
+
+  return points;
+}
+
+/* ============================================================
+   TRAITEMENT GENERAL
+   ============================================================ */
+
+async function traiterParcours(points, nomFichier) {
+
+  /* ----------------------------------------------------------
+     1. DISTANCES
+     ---------------------------------------------------------- */
+
+  const distance = [0];
+
+  for (let i = 1; i < points.length; i++) {
+
+    const d = distanceMeters(
+      points[i - 1].lat,
+      points[i - 1].lon,
+      points[i].lat,
+      points[i].lon
+    );
+
+    distance.push(d);
+  }
+
+  /*
+   * Reproduction du script R :
+   * distance <- c(0, distances entre points)
+   * pas <- mean(distance)
+   */
+  const pas = mean(distance);
+
+  if (!Number.isFinite(pas) || pas <= 0) {
+    throw new Error("Impossible de déterminer le pas spatial du GPX.");
+  }
+
+  const distanceCum = cumulativeSum(distance);
+
+  const distanceTotale =
+    distanceCum[distanceCum.length - 1];
+
+  /* ----------------------------------------------------------
+     2. ALTITUDES IGN
+     ---------------------------------------------------------- */
+
+  setStatus(
+    "Interrogation de l'API altimétrique IGN…<br>" +
+    "0 / " + points.length.toLocaleString("fr-FR") + " points"
+  );
+
+  const altitudesIGN = await getIGNAltitudes(points);
+
+  /* ----------------------------------------------------------
+     3. NETTOYAGE
+     ---------------------------------------------------------- */
+
+  const profil = [];
+
+  for (let i = 0; i < points.length; i++) {
+
+    if (
+      Number.isFinite(distanceCum[i]) &&
+      Number.isFinite(altitudesIGN[i])
+    ) {
+      profil.push({
+        distance: distanceCum[i],
+        altitude: altitudesIGN[i],
+        ele: points[i].ele,
+        time: points[i].time
+      });
+    }
+  }
+
+  if (profil.length < 10) {
+    throw new Error(
+      "Trop peu de points valides après récupération des altitudes IGN."
+    );
+  }
+
+  /* ----------------------------------------------------------
+     4. TEMPS CUMULE
+     ---------------------------------------------------------- */
+
+  let tempsCumul = 0;
+
+  profil.forEach((p, i) => {
+
+    if (i === 0) {
+      p.temps = 0;
+      p.temps_cum = 0;
+      return;
+    }
+
+    let dt = 0;
+
+    if (
+      Number.isFinite(profil[i - 1].time) &&
+      Number.isFinite(p.time)
+    ) {
+      dt = Math.max(0, p.time - profil[i - 1].time);
+    }
+
+    p.temps = dt;
+    tempsCumul += dt;
+    p.temps_cum = tempsCumul;
+  });
+
+  /* ----------------------------------------------------------
+     5. REECHANTILLONNAGE
+     ---------------------------------------------------------- */
+
+  setStatus(
+    "Rééchantillonnage du profil…<br>" +
+    "Pas moyen : " + pas.toFixed(1) + " m"
+  );
+
+  const distanceReg = [];
+
+  for (
+    let d = profil[0].distance;
+    d <= profil[profil.length - 1].distance + 1e-9;
+    d += pas
   ) {
+    distanceReg.push(d);
+  }
 
-    map.fitBounds(
+  const altitudeReg = interpolateSeries(
+    profil.map(p => p.distance),
+    profil.map(p => p.altitude),
+    distanceReg
+  );
 
-      parcoursLayer.getBounds(),
+  const eleAvailable =
+    profil.some(p => Number.isFinite(p.ele));
 
-      {
+  let eleReg;
 
-        padding: [30, 30]
+  if (eleAvailable) {
+    eleReg = interpolateSeries(
+      profil.map(p => p.distance),
+      profil.map(p =>
+        Number.isFinite(p.ele) ? p.ele : NaN
+      ),
+      distanceReg
+    );
+  } else {
+    eleReg = distanceReg.map(() => 0);
+  }
 
+  const tempsCumReg = interpolateSeries(
+    profil.map(p => p.distance),
+    profil.map(p => p.temps_cum),
+    distanceReg
+  );
+
+  /* ----------------------------------------------------------
+     6. LOESS IGN
+     ---------------------------------------------------------- */
+
+  setStatus(
+    "Lissage LOESS…<br>" +
+    "span = " + SPAN_LOESS +
+    " · degré = " + LOESS_DEGREE
+  );
+
+  const ignLoess = loess(
+    distanceReg,
+    altitudeReg,
+    SPAN_LOESS,
+    LOESS_DEGREE
+  );
+
+  /* ----------------------------------------------------------
+     7. PENTE LOCALE
+     ---------------------------------------------------------- */
+
+  const penteLocale = [];
+
+  for (let i = 1; i < distanceReg.length; i++) {
+
+    const dx = distanceReg[i] - distanceReg[i - 1];
+    const dz = ignLoess[i] - ignLoess[i - 1];
+
+    if (dx > 0 && Number.isFinite(dz)) {
+      penteLocale.push(100 * dz / dx);
+    }
+  }
+
+  if (penteLocale.length < 5) {
+    throw new Error(
+      "Le profil est trop court pour détecter les changements de pente."
+    );
+  }
+
+  /* ----------------------------------------------------------
+     8. PELT
+     cpt.mean(
+       pente_locale,
+       method = "PELT",
+       penalty = "Manual",
+       pen.value = "5 * log(n)"
+     )
+     ---------------------------------------------------------- */
+
+  setStatus(
+    "Détection des ruptures de pente…<br>" +
+    "PELT · pénalité = 5 × log(n)"
+  );
+
+  const changepoints = peltNormalMean(
+    penteLocale,
+    PELT_PENALTY_FACTOR,
+    PELT_MINSEG
+  );
+
+  /*
+   * changepoints contient les fins de segments en indices 1-based,
+   * comme cpts() de changepoint, avec n comme dernier élément.
+   */
+  const cpsSansN = changepoints.filter(
+    cp => cp < penteLocale.length
+  );
+
+  /* ----------------------------------------------------------
+     9. CONSTRUCTION DES TRONCONS
+     ---------------------------------------------------------- */
+
+  const bornes = [0];
+
+  cpsSansN.forEach(cp => {
+    /*
+     * Une pente locale i relie le point i au point i+1.
+     * La rupture après la pente cp correspond donc au point cp.
+     */
+    const idx = Math.min(
+      distanceReg.length - 1,
+      cp
+    );
+
+    if (idx > bornes[bornes.length - 1]) {
+      bornes.push(idx);
+    }
+  });
+
+  if (bornes[bornes.length - 1] !== distanceReg.length - 1) {
+    bornes.push(distanceReg.length - 1);
+  }
+
+  const troncons = [];
+
+  for (let i = 0; i < bornes.length - 1; i++) {
+
+    const startIdx = bornes[i];
+    const endIdx = bornes[i + 1];
+
+    const d1 = distanceReg[startIdx];
+    const d2 = distanceReg[endIdx];
+
+    const longueur = d2 - d1;
+
+    if (!(longueur > 0)) continue;
+
+    const dz =
+      ignLoess[endIdx] -
+      ignLoess[startIdx];
+
+    const pente =
+      100 * dz / longueur;
+
+    const t1 = tempsCumReg[startIdx];
+    const t2 = tempsCumReg[endIdx];
+
+    const temps = Math.max(0, t2 - t1);
+
+    let vitesse = NaN;
+
+    if (temps > 0) {
+      vitesse = longueur / temps * 3.6;
+    }
+
+    troncons.push({
+      id: troncons.length + 1,
+      distance_debut: d1,
+      distance_fin: d2,
+      longueur_m: longueur,
+      temps: temps,
+      pente_moyen_pct: pente,
+      vitesse_moyenne: vitesse
+    });
+  }
+
+  if (troncons.length === 0) {
+    throw new Error("Aucun tronçon de pente n'a pu être créé.");
+  }
+
+  /* ----------------------------------------------------------
+     10. AFFICHAGE
+     ---------------------------------------------------------- */
+
+  setStatus("Construction de la carte…");
+
+  drawSlopeRoute(
+    points,
+    distanceCum,
+    troncons,
+    nomFichier
+  );
+
+  const distanceFinale =
+    distanceCum[distanceCum.length - 1];
+
+  const denivelePositif =
+    positiveElevationGain(altitudesIGN);
+
+  const penteMoyenneAbsolue =
+    weightedMeanSlope(troncons);
+
+  setInfo(
+    "<b>" + escapeHtml(nomFichier) + "</b><br>" +
+    "Distance : <b>" +
+    formatDistance(distanceFinale) +
+    "</b><br>" +
+    "Dénivelé positif IGN : <b>" +
+    Math.round(denivelePositif) +
+    " m</b><br>" +
+    "Pas spatial : <b>" +
+    pas.toFixed(1) +
+    " m</b><br>" +
+    "Tronçons : <b>" +
+    troncons.length +
+    "</b><br>" +
+    "Ruptures PELT : <b>" +
+    cpsSansN.length +
+    "</b>"
+  );
+
+  setStatus(
+    "Analyse terminée",
+    true
+  );
+
+  /*
+   * Masquer automatiquement le message après quelques secondes,
+   * tout en conservant les informations du parcours.
+   */
+  setTimeout(() => {
+    setStatus("", false);
+  }, 2500);
+}
+
+/* ============================================================
+   API IGN
+   ============================================================ */
+
+async function getIGNAltitudes(points) {
+
+  const altitudes = new Array(points.length);
+  const total = points.length;
+
+  /*
+   * L'API officielle accepte jusqu'à 5000 couples lon/lat
+   * par requête. On utilise 4500 pour conserver une marge.
+   */
+  const chunkSize = 4500;
+
+  for (let start = 0; start < points.length; start += chunkSize) {
+
+    const chunk = points.slice(
+      start,
+      Math.min(start + chunkSize, points.length)
+    );
+
+    const lon = chunk
+      .map(p => Number(p.lon).toFixed(8))
+      .join("|");
+
+    const lat = chunk
+      .map(p => Number(p.lat).toFixed(8))
+      .join("|");
+
+    const params = new URLSearchParams({
+      lon: lon,
+      lat: lat,
+      resource: IGN_RESOURCE,
+      delimiter: "|",
+      indent: "false",
+      measures: "false",
+      zonly: "true"
+    });
+
+    const url = IGN_URL + "?" + params.toString();
+
+    let response;
+
+    try {
+      response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Accept": "application/json"
+        }
+      });
+    } catch (e) {
+      throw new Error(
+        "Impossible de contacter l'API IGN. " +
+        "Vérifiez la connexion Internet du smartphone."
+      );
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        "Erreur API IGN HTTP " +
+        response.status +
+        " (" + response.statusText + ")."
+      );
+    }
+
+    const data = await response.json();
+
+    let values;
+
+    if (Array.isArray(data)) {
+      values = data;
+    } else if (Array.isArray(data.elevations)) {
+      values = data.elevations;
+    } else if (Array.isArray(data.altitudes)) {
+      values = data.altitudes;
+    } else {
+      throw new Error(
+        "Format de réponse de l'API IGN inattendu."
+      );
+    }
+
+    if (values.length !== chunk.length) {
+      throw new Error(
+        "L'API IGN a retourné " +
+        values.length +
+        " altitudes pour " +
+        chunk.length +
+        " points."
+      );
+    }
+
+    for (let i = 0; i < values.length; i++) {
+      const z = Number(values[i]);
+
+      /*
+       * -99999 est la valeur IGN indiquant une absence
+       * d'altitude exploitable.
+       */
+      altitudes[start + i] =
+        (Number.isFinite(z) && z > -99990)
+          ? z
+          : NaN;
+    }
+
+    setStatus(
+      "Interrogation de l'API IGN…<br>" +
+      Math.min(start + chunk.length, total).toLocaleString("fr-FR") +
+      " / " + total.toLocaleString("fr-FR") +
+      " points"
+    );
+  }
+
+  return altitudes;
+}
+
+/* ============================================================
+   LOESS
+   ============================================================ */
+
+/*
+ * Approximation locale du loess de R :
+ *
+ * loess(
+ *   altitude ~ distance,
+ *   span = 0.05,
+ *   degree = 2,
+ *   family = "gaussian"
+ * )
+ *
+ * On utilise :
+ * - voisinage local défini par span
+ * - poids tricube
+ * - régression polynomiale locale degré 2
+ * - pas d'itération robuste puisque family = "gaussian"
+ *
+ * Le résultat reproduit le principe et les paramètres du loess R,
+ * mais n'est pas garanti bit-à-bit identique à l'implémentation
+ * FORTRAN/C de stats::loess().
+ */
+
+function loess(x, y, span, degree) {
+
+  const n = x.length;
+  const result = new Array(n);
+
+  if (n < degree + 2) {
+    return y.slice();
+  }
+
+  const k = Math.max(
+    degree + 1,
+    Math.ceil(span * n)
+  );
+
+  for (let i = 0; i < n; i++) {
+
+    const xi = x[i];
+
+    /*
+     * Recherche des k voisins les plus proches.
+     * Pour les profils usuels, cette méthode reste suffisamment
+     * rapide sur smartphone.
+     */
+    const neighbors = [];
+
+    for (let j = 0; j < n; j++) {
+
+      const d = Math.abs(x[j] - xi);
+
+      neighbors.push({
+        index: j,
+        distance: d
+      });
+    }
+
+    neighbors.sort(
+      (a, b) => a.distance - b.distance
+    );
+
+    const selected = neighbors.slice(0, k);
+
+    let dmax =
+      selected[selected.length - 1].distance;
+
+    if (dmax <= 0) {
+      result[i] = y[i];
+      continue;
+    }
+
+    /*
+     * Régression locale centrée en xi.
+     * Pour degré 2 :
+     * y = a + b*(x-xi) + c*(x-xi)^2
+     */
+
+    const p = degree + 1;
+
+    const A = Array.from(
+      { length: p },
+      () => Array(p).fill(0)
+    );
+
+    const B = Array(p).fill(0);
+
+    selected.forEach(item => {
+
+      const j = item.index;
+      const u = item.distance / dmax;
+
+      let w =
+        Math.pow(
+          Math.max(0, 1 - Math.pow(u, 3)),
+          3
+        );
+
+      if (!Number.isFinite(y[j])) {
+        w = 0;
       }
 
-    );
+      if (w <= 0) return;
 
+      const dx = x[j] - xi;
+
+      const basis = [1];
+
+      if (degree >= 1) basis.push(dx);
+      if (degree >= 2) basis.push(dx * dx);
+
+      for (let r = 0; r < p; r++) {
+
+        B[r] +=
+          w *
+          basis[r] *
+          y[j];
+
+        for (let c = 0; c < p; c++) {
+          A[r][c] +=
+            w *
+            basis[r] *
+            basis[c];
+        }
+      }
+    });
+
+    const beta = solveLinearSystem(A, B);
+
+    if (beta === null) {
+      result[i] = weightedLocalMean(
+        selected,
+        x,
+        y,
+        xi,
+        dmax
+      );
+    } else {
+      result[i] = beta[0];
+    }
   }
 
+  return result;
 }
 
+function weightedLocalMean(
+  selected,
+  x,
+  y,
+  xi,
+  dmax
+) {
+  let sw = 0;
+  let sy = 0;
 
-// ==================================================
-// BOUTON CHARGER
-// ==================================================
+  selected.forEach(item => {
 
-document
+    const j = item.index;
 
-  .getElementById("loadButton")
+    if (!Number.isFinite(y[j])) return;
 
-  .addEventListener(
+    const u =
+      Math.abs(x[j] - xi) / dmax;
 
-    "click",
+    const w =
+      Math.pow(
+        Math.max(0, 1 - Math.pow(u, 3)),
+        3
+      );
 
-    function() {
+    sw += w;
+    sy += w * y[j];
+  });
 
-      document
+  return sw > 0 ? sy / sw : NaN;
+}
 
-        .getElementById("fileInput")
+/* ============================================================
+   RESOLUTION SYSTEME LINEAIRE
+   ============================================================ */
 
-        .click();
+function solveLinearSystem(Ain, bin) {
 
+  const n = bin.length;
+
+  const A = Ain.map(row => row.slice());
+  const b = bin.slice();
+
+  for (let i = 0; i < n; i++) {
+
+    let pivot = i;
+    let max = Math.abs(A[i][i]);
+
+    for (let r = i + 1; r < n; r++) {
+
+      const v = Math.abs(A[r][i]);
+
+      if (v > max) {
+        max = v;
+        pivot = r;
+      }
     }
 
-  );
-
-
-// ==================================================
-// LECTURE DU FICHIER
-// ==================================================
-
-document
-
-  .getElementById("fileInput")
-
-  .addEventListener(
-
-    "change",
-
-    function(event) {
-
-
-      var file =
-        event.target.files[0];
-
-
-      if (!file)
-
-        return;
-
-
-      var reader =
-        new FileReader();
-
-
-      reader.onload =
-        function(e) {
-
-
-          try {
-
-
-            var data =
-              JSON.parse(
-                e.target.result
-              );
-
-
-            chargerParcours(
-
-              data,
-
-              file.name
-
-            );
-
-
-          }
-
-          catch(error) {
-
-
-            alert(
-
-              "Impossible de lire le fichier GeoJSON."
-
-            );
-
-
-            console.error(
-
-              error
-
-            );
-
-          }
-
-        };
-
-
-      reader.readAsText(file);
-
+    if (!Number.isFinite(max) || max < 1e-12) {
+      return null;
     }
 
-  );
+    if (pivot !== i) {
+      [A[i], A[pivot]] =
+        [A[pivot], A[i]];
 
+      [b[i], b[pivot]] =
+        [b[pivot], b[i]];
+    }
 
-// ==================================================
-// GPS
-// ==================================================
+    for (let r = i + 1; r < n; r++) {
 
-var positionMarker = null;
+      const factor =
+        A[r][i] / A[i][i];
 
-var positionCircle = null;
+      for (let c = i; c < n; c++) {
+        A[r][c] -=
+          factor * A[i][c];
+      }
 
-var gpsWatch = null;
-
-
-// ==================================================
-// SUIVI AUTOMATIQUE
-// ==================================================
-
-var suivreGPS = true;
-
-
-// ==================================================
-// POSITION GPS PRECEDENTE
-// ==================================================
-
-var dernierePosition = null;
-
-
-// ==================================================
-// HISTORIQUE DES VITESSES
-// ==================================================
-
-var historiqueVitesses = [];
-
-var nombreMesuresVitesse = 5;
-
-
-// ==================================================
-// CALCUL DE LA VITESSE
-// ==================================================
-
-function calculerVitesse(position) {
-
-
-  var lat =
-    position.coords.latitude;
-
-
-  var lon =
-    position.coords.longitude;
-
-
-  var timestamp =
-    position.timestamp;
-
-
-  // ----------------------------------------------
-  // Première mesure
-  // ----------------------------------------------
-
-  if (
-
-    dernierePosition === null
-
-  ) {
-
-
-    dernierePosition = {
-
-      lat: lat,
-
-      lon: lon,
-
-      timestamp: timestamp
-
-    };
-
-
-    return null;
-
+      b[r] -=
+        factor * b[i];
+    }
   }
 
+  const x = Array(n).fill(0);
 
-  // ----------------------------------------------
-  // Temps écoulé
-  // ----------------------------------------------
+  for (let i = n - 1; i >= 0; i--) {
 
-  var dt =
+    let s = b[i];
 
-    (
+    for (let c = i + 1; c < n; c++) {
+      s -= A[i][c] * x[c];
+    }
 
-      timestamp -
-
-      dernierePosition.timestamp
-
-    ) / 1000;
-
-
-  // ----------------------------------------------
-  // Vérification
-  // ----------------------------------------------
-
-  if (
-
-    dt <= 0
-
-  ) {
-
-    return null;
-
+    x[i] =
+      s / A[i][i];
   }
 
+  return x;
+}
 
-  // ----------------------------------------------
-  // Distance
-  // ----------------------------------------------
+/* ============================================================
+   PELT – CHANGEMENT DE MOYENNE NORMALE
+   ============================================================ */
 
-  var distance =
+/*
+ * Reproduction côté navigateur de :
+ *
+ * cpt.mean(
+ *   pente_locale,
+ *   method = "PELT",
+ *   penalty = "Manual",
+ *   pen.value = "5 * log(n)",
+ *   test.stat = "Normal"
+ * )
+ *
+ * Pour test.stat = "Normal", la fonction changepoint utilise
+ * le coût "norm.mean". La forme utile ici est :
+ *
+ *       m * log(RSS / m)
+ *
+ * à une constante additive près.
+ *
+ * La constante n'influence pas le découpage optimal.
+ */
 
-    map.distance(
+function peltNormalMean(
+  data,
+  penaltyFactor,
+  minseglen
+) {
 
-      [
+  const n = data.length;
 
-        dernierePosition.lat,
+  if (n < 2) return [n];
 
-        dernierePosition.lon
+  const penalty =
+    penaltyFactor * Math.log(n);
 
-      ],
+  /*
+   * Sommes cumulées.
+   */
+  const sum = new Array(n + 1).fill(0);
+  const sumSq = new Array(n + 1).fill(0);
 
-      [
+  for (let i = 0; i < n; i++) {
 
-        lat,
+    const v = data[i];
 
-        lon
+    sum[i + 1] =
+      sum[i] + v;
 
-      ]
+    sumSq[i + 1] =
+      sumSq[i] + v * v;
+  }
 
+  function cost(start, end) {
+
+    /*
+     * start inclusif, end exclusif.
+     */
+    const m = end - start;
+
+    if (m <= 0) return 0;
+
+    const s =
+      sum[end] - sum[start];
+
+    const ss =
+      sumSq[end] - sumSq[start];
+
+    let rss =
+      ss - (s * s) / m;
+
+    /*
+     * Protection contre les petites erreurs numériques.
+     */
+    if (rss <= 1e-12) {
+      rss = 1e-12;
+    }
+
+    return m * Math.log(rss / m);
+  }
+
+  /*
+   * F[t] = coût optimal des t premières observations.
+   */
+  const F = new Array(n + 1).fill(Infinity);
+
+  /*
+   * Dernier point de rupture permettant de reconstruire
+   * la segmentation.
+   */
+  const last = new Array(n + 1).fill(0);
+
+  F[0] = -penalty;
+
+  /*
+   * Ensemble des candidats PELT.
+   */
+  let candidates = [0];
+
+  for (let t = minseglen; t <= n; t++) {
+
+    let bestValue = Infinity;
+    let bestTau = 0;
+
+    for (const tau of candidates) {
+
+      if (t - tau < minseglen) {
+        continue;
+      }
+
+      const value =
+        F[tau] +
+        cost(tau, t) +
+        penalty;
+
+      if (value < bestValue) {
+        bestValue = value;
+        bestTau = tau;
+      }
+    }
+
+    if (!Number.isFinite(bestValue)) {
+      continue;
+    }
+
+    F[t] = bestValue;
+    last[t] = bestTau;
+
+    /*
+     * PELT pruning :
+     * on élimine les candidats qui ne peuvent plus être
+     * optimaux pour les temps futurs.
+     *
+     * Pour la fonction de coût normale utilisée ici, K = 0.
+     */
+    const newCandidates = [];
+
+    for (const tau of candidates) {
+
+      if (t - tau < minseglen) {
+        continue;
+      }
+
+      const value =
+        F[tau] +
+        cost(tau, t);
+
+      if (value <= F[t] + 1e-10) {
+        newCandidates.push(tau);
+      }
+    }
+
+    newCandidates.push(t);
+    candidates = newCandidates;
+  }
+
+  /*
+   * Reconstruction des points de rupture.
+   * R cpts() retourne les fins de segments et termine par n.
+   */
+  const cps = [];
+
+  let t = n;
+
+  while (t > 0) {
+
+    cps.push(t);
+
+    const tau = last[t];
+
+    if (!Number.isFinite(tau) || tau === t) {
+      break;
+    }
+
+    t = tau;
+  }
+
+  cps.reverse();
+
+  /*
+   * Sécurité : n doit être présent.
+   */
+  if (
+    cps.length === 0 ||
+    cps[cps.length - 1] !== n
+  ) {
+    cps.push(n);
+  }
+
+  /*
+   * Déduplication.
+   */
+  return [...new Set(cps)];
+}
+
+/* ============================================================
+   CARTE : COULEUR DES TRONCONS
+   ============================================================ */
+
+function slopeColor(slope) {
+
+  if (slope <= 3) {
+    return SLOPE_COLORS[0];
+  }
+
+  if (slope <= 6) {
+    return SLOPE_COLORS[1];
+  }
+
+  if (slope <= 9) {
+    return SLOPE_COLORS[2];
+  }
+
+  if (slope <= 12) {
+    return SLOPE_COLORS[3];
+  }
+
+  return SLOPE_COLORS[4];
+}
+
+function slopeClass(slope) {
+
+  if (slope <= 3) return "≤ 3 %";
+  if (slope <= 6) return "3–6 %";
+  if (slope <= 9) return "6–9 %";
+  if (slope <= 12) return "9–12 %";
+
+  return "> 12 %";
+}
+
+/* ============================================================
+   TRACÉ DES TRONCONS SUR OPENTOPOMAP
+   ============================================================ */
+
+function drawSlopeRoute(
+  points,
+  distanceCum,
+  troncons,
+  nomFichier
+) {
+
+  routeLayers.forEach(layer => map.removeLayer(layer));
+  routeLayers = [];
+
+  const allLatLng = [];
+
+  troncons.forEach(troncon => {
+
+    /*
+     * On récupère les points GPS appartenant à l'intervalle
+     * de distance du tronçon.
+     */
+    const coords = [];
+
+    for (let i = 0; i < points.length; i++) {
+
+      if (
+        distanceCum[i] >= troncon.distance_debut &&
+        distanceCum[i] <= troncon.distance_fin
+      ) {
+        coords.push([
+          points[i].lat,
+          points[i].lon
+        ]);
+      }
+    }
+
+    /*
+     * On garantit les extrémités lorsque l'échantillonnage
+     * GPS est plus lâche que le profil rééchantillonné.
+     */
+    if (coords.length < 2) {
+      return;
+    }
+
+    coords.forEach(c => allLatLng.push(c));
+
+    const slope =
+      troncon.pente_moyen_pct;
+
+    const layer =
+      L.polyline(
+        coords,
+        {
+          color: slopeColor(slope),
+          weight: 6,
+          opacity: 0.82,
+          lineCap: "round",
+          lineJoin: "round"
+        }
+      ).addTo(map);
+
+    const vitesseText =
+      Number.isFinite(troncon.vitesse_moyenne)
+        ? Math.round(troncon.vitesse_moyenne) + " km/h"
+        : "non disponible";
+
+    layer.bindPopup(
+      "<b>Tronçon " +
+      troncon.id +
+      "</b><br>" +
+
+      "Pente moyenne : <b>" +
+      troncon.pente_moyen_pct.toFixed(1) +
+      " %</b><br>" +
+
+      "Classe : <b>" +
+      slopeClass(slope) +
+      "</b><br>" +
+
+      "Distance début : " +
+      troncon.distance_debut.toFixed(0) +
+      " m<br>" +
+
+      "Distance fin : " +
+      troncon.distance_fin.toFixed(0) +
+      " m<br>" +
+
+      "Longueur : " +
+      troncon.longueur_m.toFixed(0) +
+      " m<br>" +
+
+      "Vitesse moyenne : " +
+      vitesseText
     );
 
+    routeLayers.push(layer);
+  });
 
-  // ----------------------------------------------
-  // Mémoriser la nouvelle position
-  // ----------------------------------------------
+  if (allLatLng.length > 0) {
 
-  dernierePosition = {
+    routeBounds =
+      L.latLngBounds(allLatLng);
 
-    lat: lat,
+    map.fitBounds(
+      routeBounds,
+      {
+        padding: [30, 30]
+      }
+    );
+  }
+}
 
-    lon: lon,
+/* ============================================================
+   OUTILS NUMERIQUES
+   ============================================================ */
 
-    timestamp: timestamp
+function distanceMeters(
+  lat1, lon1,
+  lat2, lon2
+) {
 
-  };
+  /*
+   * Formule de Haversine.
+   * Pour le calcul des distances du GPX, la différence avec
+   * EPSG:2154 reste très faible à l'échelle d'un parcours.
+   *
+   * La segmentation et les distances affichées sont basées
+   * sur ces distances géodésiques.
+   */
 
+  const R = 6371000;
 
-  // ----------------------------------------------
-  // Ignorer les déplacements < 3 m
-  // ----------------------------------------------
+  const p1 = lat1 * Math.PI / 180;
+  const p2 = lat2 * Math.PI / 180;
 
-  if (
+  const dp =
+    (lat2 - lat1) * Math.PI / 180;
 
-    distance < 3
+  const dl =
+    (lon2 - lon1) * Math.PI / 180;
 
-  ) {
+  const a =
+    Math.sin(dp / 2) ** 2 +
+    Math.cos(p1) *
+    Math.cos(p2) *
+    Math.sin(dl / 2) ** 2;
 
-    return 0;
+  return (
+    2 * R *
+    Math.asin(Math.sqrt(a))
+  );
+}
 
+function cumulativeSum(values) {
+
+  const result =
+    new Array(values.length);
+
+  let s = 0;
+
+  for (let i = 0; i < values.length; i++) {
+    s += values[i];
+    result[i] = s;
   }
 
-
-  // ----------------------------------------------
-  // Vitesse m/s
-  // ----------------------------------------------
-
-  var vitesseMS =
-
-    distance / dt;
-
-
-  // ----------------------------------------------
-  // Conversion km/h
-  // ----------------------------------------------
-
-  var vitesseKMH =
-
-    vitesseMS * 3.6;
-
-
-  return vitesseKMH;
-
+  return result;
 }
+
+function mean(values) {
+
+  const valid =
+    values.filter(Number.isFinite);
+
+  if (valid.length === 0) {
+    return NaN;
+  }
+
+  return valid.reduce(
+    (a, b) => a + b,
+    0
+  ) / valid.length;
+}
+
+/* ============================================================
+   INTERPOLATION LINEAIRE
+   ============================================================ */
+
+function interpolateSeries(
+  x,
+  y,
+  xout
+) {
+
+  const result =
+    new Array(xout.length);
+
+  let j = 0;
+
+  for (let i = 0; i < xout.length; i++) {
+
+    const xo = xout[i];
+
+    while (
+      j < x.length - 2 &&
+      x[j + 1] < xo
+    ) {
+      j++;
+    }
+
+    if (xo <= x[0]) {
+      result[i] = y[0];
+      continue;
+    }
+
+    if (xo >= x[x.length - 1]) {
+      result[i] = y[y.length - 1];
+      continue;
+    }
+
+    const x1 = x[j];
+    const x2 = x[j + 1];
+
+    const y1 = y[j];
+    const y2 = y[j + 1];
+
+    if (
+      !Number.isFinite(y1) ||
+      !Number.isFinite(y2)
+    ) {
+      result[i] = NaN;
+      continue;
+    }
+
+    const ratio =
+      (xo - x1) / (x2 - x1);
+
+    result[i] =
+      y1 + ratio * (y2 - y1);
+  }
+
+  return result;
+}
+
+/* ============================================================
+   STATISTIQUES
+   ============================================================ */
+
+function positiveElevationGain(altitudes) {
+
+  let gain = 0;
+
+  for (let i = 1; i < altitudes.length; i++) {
+
+    const a = altitudes[i - 1];
+    const b = altitudes[i];
+
+    if (
+      Number.isFinite(a) &&
+      Number.isFinite(b) &&
+      b > a
+    ) {
+      gain += b - a;
+    }
+  }
+
+  return gain;
+}
+
+function weightedMeanSlope(troncons) {
+
+  let numerator = 0;
+  let denominator = 0;
+
+  troncons.forEach(t => {
+
+    if (
+      Number.isFinite(t.pente_moyen_pct) &&
+      t.longueur_m > 0
+    ) {
+      numerator +=
+        Math.abs(t.pente_moyen_pct) *
+        t.longueur_m;
+
+      denominator +=
+        t.longueur_m;
+    }
+  });
+
+  return denominator > 0
+    ? numerator / denominator
+    : NaN;
+}
+
+function formatDistance(meters) {
+
+  if (meters >= 1000) {
+    return (
+      (meters / 1000).toFixed(2) +
+      " km"
+    );
+  }
+
+  return (
+    Math.round(meters) +
+    " m"
+  );
+}
+
+/* ============================================================
+   SECURITE HTML
+   ============================================================ */
+
+function escapeHtml(value) {
+
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+</script>
+
+</body>
+</html>
