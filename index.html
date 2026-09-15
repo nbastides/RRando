@@ -664,8 +664,9 @@ async function traiterParcours(points, nomFichier) {
   const distanceFinale =
     distanceCum[distanceCum.length - 1];
 
+  /* Dénivelé positif calculé sur le profil IGN lissé par LOESS */
   const denivelePositif =
-    positiveElevationGain(altitudesIGN);
+    positiveElevationGain(ignLoess);
 
   const penteMoyenneAbsolue =
     weightedMeanSlope(troncons);
@@ -675,7 +676,7 @@ async function traiterParcours(points, nomFichier) {
     "Distance : <b>" +
     formatDistance(distanceFinale) +
     "</b><br>" +
-    "Dénivelé positif IGN : <b>" +
+    "Dénivelé positif lissé : <b>" +
     Math.round(denivelePositif) +
     " m</b><br>" +
     "Pas spatial : <b>" +
@@ -713,8 +714,8 @@ async function getIGNAltitudes(points) {
   const total = points.length;
 
   /*
-   * L'API officielle accepte jusqu'à 5000 couples lon/lat
-   * par requête. On utilise 4500 pour conserver une marge.
+   * L'API IGN limite les coordonnées à 5000 couples par requête.
+   * On utilise 4500 pour garder une marge.
    */
   const chunkSize = 4500;
 
@@ -725,67 +726,108 @@ async function getIGNAltitudes(points) {
       Math.min(start + chunkSize, points.length)
     );
 
-    const lon = chunk
-      .map(p => Number(p.lon).toFixed(8))
-      .join("|");
+    /*
+     * Même structure que dans le script R :
+     *
+     * body_json <- list(
+     *   lon = paste(lon, collapse = "|"),
+     *   lat = paste(lat, collapse = "|"),
+     *   resource = "ign_rge_alti_wld",
+     *   delimiter = "|",
+     *   indent = "false",
+     *   measures = "false",
+     *   zonly = "true"
+     * )
+     */
+    const body = {
+      lon: chunk
+        .map(p => Number(p.lon).toFixed(8))
+        .join("|"),
 
-    const lat = chunk
-      .map(p => Number(p.lat).toFixed(8))
-      .join("|");
+      lat: chunk
+        .map(p => Number(p.lat).toFixed(8))
+        .join("|"),
 
-    const params = new URLSearchParams({
-      lon: lon,
-      lat: lat,
       resource: IGN_RESOURCE,
-      delimiter: "|",
-      indent: "false",
-      measures: "false",
-      zonly: "true"
-    });
 
-    const url = IGN_URL + "?" + params.toString();
+      delimiter: "|",
+
+      indent: "false",
+
+      measures: "false",
+
+      zonly: "true"
+    };
 
     let response;
 
     try {
-      response = await fetch(url, {
-        method: "GET",
+
+      response = await fetch(IGN_URL, {
+        method: "POST",
+
         headers: {
-          "Accept": "application/json"
-        }
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify(body)
       });
+
     } catch (e) {
+
       throw new Error(
-        "Impossible de contacter l'API IGN. " +
-        "Vérifiez la connexion Internet du smartphone."
+        "Impossible de contacter l'API IGN depuis le navigateur. " +
+        "Vérifiez la connexion Internet et, si le problème persiste, " +
+        "ouvrez la console du navigateur pour vérifier un éventuel blocage CORS."
       );
     }
 
     if (!response.ok) {
+
+      const details = await response.text().catch(() => "");
+
       throw new Error(
         "Erreur API IGN HTTP " +
         response.status +
-        " (" + response.statusText + ")."
+        " (" +
+        response.statusText +
+        ")." +
+        (details ? " Réponse : " + details.slice(0, 300) : "")
       );
     }
 
-    const data = await response.json();
+    let data;
 
-    let values;
+    try {
 
-    if (Array.isArray(data)) {
-      values = data;
-    } else if (Array.isArray(data.elevations)) {
-      values = data.elevations;
-    } else if (Array.isArray(data.altitudes)) {
-      values = data.altitudes;
-    } else {
+      data = await response.json();
+
+    } catch (e) {
+
       throw new Error(
-        "Format de réponse de l'API IGN inattendu."
+        "La réponse de l'API IGN n'est pas un JSON valide."
       );
     }
+
+    /*
+     * Avec zonly=true, la réponse documentée est :
+     *
+     * {
+     *   "elevations": [164.34, 141.33, ...]
+     * }
+     */
+    if (!data || !Array.isArray(data.elevations)) {
+
+      throw new Error(
+        "Format de réponse IGN inattendu : le champ 'elevations' est absent."
+      );
+    }
+
+    const values = data.elevations;
 
     if (values.length !== chunk.length) {
+
       throw new Error(
         "L'API IGN a retourné " +
         values.length +
@@ -796,22 +838,23 @@ async function getIGNAltitudes(points) {
     }
 
     for (let i = 0; i < values.length; i++) {
+
       const z = Number(values[i]);
 
-      /*
-       * -99999 est la valeur IGN indiquant une absence
-       * d'altitude exploitable.
-       */
       altitudes[start + i] =
-        (Number.isFinite(z) && z > -99990)
+        Number.isFinite(z) && z > -99990
           ? z
           : NaN;
     }
 
     setStatus(
       "Interrogation de l'API IGN…<br>" +
-      Math.min(start + chunk.length, total).toLocaleString("fr-FR") +
-      " / " + total.toLocaleString("fr-FR") +
+      Math.min(
+        start + chunk.length,
+        total
+      ).toLocaleString("fr-FR") +
+      " / " +
+      total.toLocaleString("fr-FR") +
       " points"
     );
   }
