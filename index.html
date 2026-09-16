@@ -701,21 +701,12 @@ async function traiterParcours(points, nomFichier) {
     weightedMeanSlope(troncons);
 
   setInfo(
-    "<b>" + escapeHtml(nomFichier) + "</b><br>" +
+    "<b>"  +
     "Distance : <b>" +
     formatDistance(distanceFinale) +
     "</b><br>" +
     "Dénivelé positif lissé : <b>" +
     Math.round(denivelePositif) +
-    " m</b><br>" +
-    "Pas spatial : <b>" +
-    pas.toFixed(1) +
-    " m</b><br>" +
-    "Tronçons : <b>" +
-    troncons.length +
-    "</b><br>" +
-    "Ruptures PELT : <b>" +
-    cpsSansN.length +
     "</b>"
   );
 
