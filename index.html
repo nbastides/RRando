@@ -58,6 +58,7 @@
       transform: scale(.94);
     }
 
+    #gpsInfo,
     #status,
     #info {
       max-width: 270px;
@@ -70,6 +71,10 @@
       font-size: 12px;
       line-height: 1.35;
       color: #222;
+    }
+
+    #gpsInfo {
+      display: none;
     }
 
     #status {
@@ -135,6 +140,16 @@
   <button id="clearButton"
           class="tool-button"
           title="Effacer le parcours">🗑️</button>
+
+  <button id="gpsButton"
+          class="tool-button"
+          title="Afficher ma position">📍</button>
+
+  <button id="followButton"
+          class="tool-button"
+          title="Arrêter le suivi">⛔</button>
+
+  <div id="gpsInfo"></div>
 
   <div id="status"></div>
   <div id="info"></div>
@@ -241,6 +256,20 @@ function clearMap() {
   routeBounds = null;
   setStatus("", false);
   setInfo("", false);
+
+  if (gpsMarker) {
+    map.removeLayer(gpsMarker);
+    gpsMarker = null;
+  }
+
+  if (gpsAccuracyCircle) {
+    map.removeLayer(gpsAccuracyCircle);
+    gpsAccuracyCircle = null;
+  }
+
+  if (gpsInfo) {
+    gpsInfo.style.display = "none";
+  }
 }
 
 /* ============================================================
@@ -1455,6 +1484,124 @@ function drawSlopeRoute(
     );
   }
 }
+
+/* ============================================================
+   POSITION GPS DU SMARTPHONE
+   ============================================================ */
+
+let gpsWatchId = null;
+let gpsMarker = null;
+let gpsAccuracyCircle = null;
+let suivreGPS = true;
+let dernierePositionGPS = null;
+
+const gpsButton = document.getElementById("gpsButton");
+const followButton = document.getElementById("followButton");
+const gpsInfo = document.getElementById("gpsInfo");
+
+function afficherPositionGPS(position, recentrer = false) {
+
+  const lat = position.coords.latitude;
+  const lon = position.coords.longitude;
+  const accuracy = position.coords.accuracy;
+  const latlng = [lat, lon];
+
+  if (gpsMarker === null) {
+    gpsMarker = L.circleMarker(latlng, {
+      radius: 7,
+      color: "#ffffff",
+      weight: 3,
+      fillColor: "#1976D2",
+      fillOpacity: 1
+    }).addTo(map);
+    gpsMarker.bindPopup("Ma position");
+  } else {
+    gpsMarker.setLatLng(latlng);
+  }
+
+  if (gpsAccuracyCircle === null) {
+    gpsAccuracyCircle = L.circle(latlng, {
+      radius: accuracy,
+      color: "#1976D2",
+      weight: 1,
+      opacity: 0.55,
+      fillColor: "#1976D2",
+      fillOpacity: 0.10
+    }).addTo(map);
+  } else {
+    gpsAccuracyCircle.setLatLng(latlng);
+    gpsAccuracyCircle.setRadius(accuracy);
+  }
+
+  gpsInfo.innerHTML =
+    "📍 " + lat.toFixed(5) + ", " + lon.toFixed(5) +
+    "<br>📡 précision : " + Math.round(accuracy) + " m";
+  gpsInfo.style.display = "block";
+
+  if (recentrer || suivreGPS) {
+    map.panTo(latlng, { animate: true, duration: 0.5 });
+  }
+
+  dernierePositionGPS = position;
+}
+
+function erreurGPS(error) {
+  console.warn("Erreur GPS :", error.code, error.message);
+  gpsInfo.innerHTML = "⚠️ GPS indisponible";
+  gpsInfo.style.display = "block";
+}
+
+function demarrerGPS() {
+
+  if (!navigator.geolocation) {
+    gpsInfo.innerHTML = "⚠️ Géolocalisation indisponible";
+    gpsInfo.style.display = "block";
+    return;
+  }
+
+  suivreGPS = true;
+  followButton.textContent = "⛔";
+  followButton.title = "Arrêter le suivi";
+
+  navigator.geolocation.getCurrentPosition(
+    function(position) { afficherPositionGPS(position, true); },
+    erreurGPS,
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+  );
+
+  if (gpsWatchId !== null) {
+    navigator.geolocation.clearWatch(gpsWatchId);
+  }
+
+  gpsWatchId = navigator.geolocation.watchPosition(
+    function(position) { afficherPositionGPS(position, false); },
+    erreurGPS,
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
+  );
+}
+
+function arreterSuiviGPS() {
+  suivreGPS = false;
+  followButton.textContent = "▶️";
+  followButton.title = "Reprendre le suivi";
+}
+
+gpsButton.addEventListener("click", demarrerGPS);
+
+followButton.addEventListener("click", function() {
+  if (suivreGPS) {
+    arreterSuiviGPS();
+  } else {
+    suivreGPS = true;
+    followButton.textContent = "⛔";
+    followButton.title = "Arrêter le suivi";
+    if (dernierePositionGPS !== null) {
+      afficherPositionGPS(dernierePositionGPS, true);
+    } else {
+      demarrerGPS();
+    }
+  }
+});
 
 /* ============================================================
    OUTILS NUMERIQUES
