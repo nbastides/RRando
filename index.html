@@ -121,6 +121,37 @@
     .leaflet-control-attribution {
       font-size: 9px !important;
     }
+	
+	#speedometer {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 9999;
+
+  min-width: 105px;
+  padding: 8px 12px;
+
+  color: #fff;
+  background: rgba(20, 20, 20, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+
+  font-family: system-ui, sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+  text-align: right;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+#speedometer .speed-unit {
+  margin-left: 3px;
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+	
   </style>
 </head>
 
@@ -172,6 +203,13 @@
   <div class="legend-row">
     <span class="legend-color" style="background:#000000"></span> &gt; 12 %
   </div>
+  
+  <div id="speedometer" aria-label="Vitesse actuelle">
+  <span id="speed-value">0.0</span>
+  <span class="speed-unit">km/h</span>
+</div>
+
+  
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1593,6 +1631,204 @@ followButton.addEventListener("click", function() {
     }
   }
 });
+
+/* ============================================================
+   Speedometer
+   ============================================================ */
+const speedValue = document.getElementById("speed-value");
+
+const speedSamples = [];
+let displayedSpeed = 0;
+
+// Paramètres de stabilisation
+const POSITION_SMOOTHING_MS = 5000;
+const SPEED_MEASUREMENT_MS = 10000;
+const MAX_ACCURACY_METERS = 50;
+const MAX_REALISTIC_SPEED_KMH = 130;
+const MIN_MOVEMENT_KMH = 0.5;
+
+/**
+ * Distance entre deux coordonnées GPS, en mètres.
+ */
+function distanceMeters(a, b) {
+  const earthRadius = 6371000;
+  const lat1 = a.lat * Math.PI / 180;
+  const lat2 = b.lat * Math.PI / 180;
+  const dLat = (b.lat - a.lat) * Math.PI / 180;
+  const dLon = (b.lon - a.lon) * Math.PI / 180;
+
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) *
+      Math.cos(lat2) *
+      Math.sin(dLon / 2) ** 2;
+
+  return 2 * earthRadius * Math.asin(Math.sqrt(h));
+}
+
+/**
+ * Lissage temporel des positions GPS.
+ *
+ * Le lissage est effectué dans un repère local en mètres,
+ * ce qui évite de moyenner directement les latitudes/longitudes.
+ */
+function smoothPosition(samples) {
+  if (!samples.length) return null;
+
+  const reference = samples[samples.length - 1];
+  const refLatRad = reference.lat * Math.PI / 180;
+  const metersPerDegreeLat = 111320;
+  const metersPerDegreeLon = 111320 * Math.cos(refLatRad);
+
+  let totalWeight = 0;
+  let x = 0;
+  let y = 0;
+
+  for (const sample of samples) {
+    const age = reference.time - sample.time;
+
+    // Les positions récentes ont davantage de poids.
+    const weight = Math.exp(-age / 2500);
+
+    const localX =
+      (sample.lon - reference.lon) * metersPerDegreeLon;
+
+    const localY =
+      (sample.lat - reference.lat) * metersPerDegreeLat;
+
+    x += localX * weight;
+    y += localY * weight;
+    totalWeight += weight;
+  }
+
+  return {
+    lat: reference.lat + (y / totalWeight) / metersPerDegreeLat,
+    lon: reference.lon + (x / totalWeight) / metersPerDegreeLon,
+    time: reference.time
+  };
+}
+
+/**
+ * Ajoute une position GPS et met à jour le compteur.
+ */
+function updateSpeed(latitude, longitude, timestamp = Date.now(), accuracy = 0) {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return;
+  }
+
+  // Les positions très imprécises rendent le calcul instable.
+  if (accuracy && accuracy > MAX_ACCURACY_METERS) {
+    return;
+  }
+
+  const rawPosition = {
+    lat: latitude,
+    lon: longitude,
+    time: timestamp
+  };
+
+  speedSamples.push(rawPosition);
+
+  // On ne conserve que les dernières secondes nécessaires.
+  const historyStart = timestamp - POSITION_SMOOTHING_MS - SPEED_MEASUREMENT_MS;
+  while (speedSamples.length && speedSamples[0].time < historyStart) {
+    speedSamples.shift();
+  }
+
+  // Il faut suffisamment de points pour lisser.
+  if (speedSamples.length < 2) {
+    displaySpeed(0);
+    return;
+  }
+
+  const smoothingStart = timestamp - POSITION_SMOOTHING_MS;
+  const samplesToSmooth = speedSamples.filter(
+    sample => sample.time >= smoothingStart
+  );
+
+  const current = smoothPosition(samplesToSmooth);
+  if (!current) return;
+
+  // Recherche d'une position lissée suffisamment ancienne.
+  const oldStart = timestamp - SPEED_MEASUREMENT_MS;
+  const oldCandidates = speedSamples.filter(
+    sample => sample.time <= oldStart
+  );
+
+  if (!oldCandidates.length) {
+    displaySpeed(0);
+    return;
+  }
+
+  const old = smoothPosition(
+    speedSamples.filter(
+      sample =>
+        sample.time >= oldCandidates[oldCandidates.length - 1].time -
+          POSITION_SMOOTHING_MS &&
+        sample.time <= oldCandidates[oldCandidates.length - 1].time
+    )
+  );
+
+  if (!old) return;
+
+  const elapsedSeconds = (current.time - old.time) / 1000;
+
+  if (elapsedSeconds <= 0) {
+    return;
+  }
+
+  const distance = distanceMeters(old, current);
+  let speedKmh = distance / elapsedSeconds * 3.6;
+
+  // Rejet des sauts GPS aberrants.
+  if (
+    !Number.isFinite(speedKmh) ||
+    speedKmh > MAX_REALISTIC_SPEED_KMH
+  ) {
+    return;
+  }
+
+  // Suppression des très petits mouvements dus au bruit GPS.
+  if (speedKmh < MIN_MOVEMENT_KMH) {
+    speedKmh = 0;
+  }
+
+  // Filtre passe-bas : ralentit les variations brutales de l'affichage.
+  const smoothingFactor = speedKmh === 0 ? 0.15 : 0.25;
+  displayedSpeed +=
+    (speedKmh - displayedSpeed) * smoothingFactor;
+
+  displaySpeed(displayedSpeed);
+}
+
+function displaySpeed(speedKmh) {
+  speedValue.textContent = speedKmh.toFixed(1);
+}
+
+// Branchement du calcul sur la géolocalisation en direct
+
+navigator.geolocation.watchPosition(
+  position => {
+    const { latitude, longitude, accuracy } = position.coords;
+
+    updateSpeed(
+      latitude,
+      longitude,
+      position.timestamp,
+      accuracy
+    );
+  },
+  error => {
+    console.error("Erreur de géolocalisation :", error);
+    displaySpeed(0);
+  },
+  {
+    enableHighAccuracy: true,
+    maximumAge: 1000,
+    timeout: 10000
+  }
+);
+
 
 /* ============================================================
    OUTILS NUMERIQUES
