@@ -72,6 +72,35 @@
       line-height: 1.35;
       color: #222;
     }
+	
+	#speedometer {
+      position: fixed;
+      top: 12px;
+	  right: 12px;
+      z-index: 9999;
+
+      min-width: 105px;
+      padding: 8px 12px;
+
+      color: #fff;
+      background: rgba(20, 20, 20, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 8px;
+
+      font-family: system-ui, sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1;
+      text-align: right;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    }
+
+    #speedometer .speed-unit {
+      margin-left: 3px;
+      font-size: 12px;
+      font-weight: 500;
+      opacity: 0.85;
+    }
 
     #gpsInfo {
       display: none;
@@ -122,34 +151,7 @@
       font-size: 9px !important;
     }
 	
-	#speedometer {
-  position: fixed;
-  top: 12px;
-  right: 12px;
-  z-index: 9999;
-
-  min-width: 105px;
-  padding: 8px 12px;
-
-  color: #fff;
-  background: rgba(20, 20, 20, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 8px;
-
-  font-family: system-ui, sans-serif;
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1;
-  text-align: right;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-}
-
-#speedometer .speed-unit {
-  margin-left: 3px;
-  font-size: 12px;
-  font-weight: 500;
-  opacity: 0.85;
-}
+	
 
 	
   </style>
