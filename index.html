@@ -1407,6 +1407,58 @@ function slopeClass(slope) {
 /* ============================================================
    TRACÉ DES TRONCONS SUR OPENTOPOMAP
    ============================================================ */
+function pointAtDistance(points, distanceCum, targetDistance) {
+  if (!points.length) {
+    return null;
+  }
+
+  // Si la distance demandée est avant le parcours
+  if (targetDistance <= distanceCum[0]) {
+    return [
+      points[0].lat,
+      points[0].lon
+    ];
+  }
+
+  // Si la distance demandée est après le parcours
+  const lastIndex = points.length - 1;
+
+  if (targetDistance >= distanceCum[lastIndex]) {
+    return [
+      points[lastIndex].lat,
+      points[lastIndex].lon
+    ];
+  }
+
+  for (let i = 1; i < points.length; i++) {
+    const d1 = distanceCum[i - 1];
+    const d2 = distanceCum[i];
+
+    if (targetDistance >= d1 && targetDistance <= d2) {
+      const p1 = points[i - 1];
+      const p2 = points[i];
+
+      // Évite une division par zéro si deux points ont
+      // exactement la même distance cumulée.
+      if (d2 === d1) {
+        return [
+          p1.lat,
+          p1.lon
+        ];
+      }
+
+      const ratio = (targetDistance - d1) / (d2 - d1);
+
+      return [
+        p1.lat + ratio * (p2.lat - p1.lat),
+        p1.lon + ratio * (p2.lon - p1.lon)
+      ];
+    }
+  }
+
+  return null;
+}
+
 
 function drawSlopeRoute(
   points,
@@ -1421,55 +1473,65 @@ function drawSlopeRoute(
   const allLatLng = [];
 
   troncons.forEach(troncon => {
+  const coords = [];
 
-    /*
-     * On récupère les points GPS appartenant à l'intervalle
-     * de distance du tronçon.
-     */
-    const coords = [];
+  const distanceDebut = troncon.distance_debut;
+  const distanceFin = troncon.distance_fin;
 
-    for (let i = 0; i < points.length; i++) {
+  const coordDebut = pointAtDistance(
+    points,
+    distanceCum,
+    distanceDebut
+  );
 
-      if (
-        distanceCum[i] >= troncon.distance_debut &&
-        distanceCum[i] <= troncon.distance_fin
-      ) {
-        coords.push([
-          points[i].lat,
-          points[i].lon
-        ]);
-      }
+  if (coordDebut) {
+    coords.push(coordDebut);
+  }
+
+  for (let i = 0; i < points.length; i++) {
+    if (
+      distanceCum[i] > distanceDebut &&
+      distanceCum[i] < distanceFin
+    ) {
+      coords.push([
+        points[i].lat,
+        points[i].lon
+      ]);
     }
+  }
 
-    /*
-     * On garantit les extrémités lorsque l'échantillonnage
-     * GPS est plus lâche que le profil rééchantillonné.
-     */
-    if (coords.length < 2) {
-      return;
-    }
+  const coordFin = pointAtDistance(
+    points,
+    distanceCum,
+    distanceFin
+  );
 
-    coords.forEach(c => allLatLng.push(c));
+  if (coordFin) {
+    coords.push(coordFin);
+  }
 
-    const slope =
-      troncon.pente_moyen_pct;
+  if (coords.length < 2) {
+    console.warn(
+      "Tronçon ignoré : pas assez de coordonnées",
+      troncon
+    );
+    return;
+  }
 
-    const layer =
-      L.polyline(
-        coords,
-        {
-          color: slopeColor(slope),
-          weight: 6,
-          opacity: 0.82,
-          lineCap: "round",
-          lineJoin: "round"
-        }
-      ).addTo(map);
+  coords.forEach(c => allLatLng.push(c));
 
-    const vitesseText =
-      Number.isFinite(troncon.vitesse_moyenne)
-        ? Math.round(troncon.vitesse_moyenne) + " km/h"
-        : "non disponible";
+  const slope = troncon.pente_moyen_pct;
+
+  const layer = L.polyline(coords, {
+    color: slopeColor(slope),
+    weight: 6,
+    opacity: 0.82,
+    lineCap: "round",
+    lineJoin: "round"
+  }).addTo(map);
+
+  
+
 
     layer.bindPopup(
       "<b>Tronçon " +
