@@ -1530,10 +1530,10 @@ function drawSlopeRoute(
     lineJoin: "round"
   }).addTo(map);
 
-  //const vitesseText =
-    //  Number.isFinite(troncon.vitesse_moyenne)
-      //  ? Math.round(troncon.vitesse_moyenne) + " km/h"
-        //: "non disponible";
+  const vitesseText =
+      Number.isFinite(troncon.vitesse_moyenne)
+        ? Math.round(troncon.vitesse_moyenne) + " km/h"
+        : "non disponible";
 
 
     layer.bindPopup(
@@ -1561,8 +1561,8 @@ function drawSlopeRoute(
       troncon.longueur_m.toFixed(0) +
       " m<br>" +
 
-      //"Vitesse moyenne : " +
-      //vitesseText
+      "Vitesse moyenne : " +
+      vitesseText
     );
 
     routeLayers.push(layer);
