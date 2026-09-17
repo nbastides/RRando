@@ -776,10 +776,10 @@ async function traiterParcours(points, nomFichier) {
     "<b>"  +
     "D : <b>" +
     formatDistance(distanceFinale) +
-    "</b><br>" +
-    "D+ : <b>" +
+    "</b>" +
+    " D+ : <b>" +
     Math.round(denivelePositif) +
-    " m</b><br>"
+    " m</b>"
   );
 
   setStatus(
@@ -1561,39 +1561,28 @@ function drawSlopeRoute(
     lineJoin: "round"
   }).addTo(map);
 
-  const vitesseText =
-      Number.isFinite(troncon.vitesse_moyenne)
-        ? Math.round(troncon.vitesse_moyenne) + " km/h"
-        : "non disponible";
+  
 
 
     layer.bindPopup(
-      "<b>Tronçon " +
-      troncon.id +
-      "</b><br>" +
 
       "Pente moyenne : <b>" +
       troncon.pente_moyen_pct.toFixed(1) +
       " %</b><br>" +
 
-      "Classe : <b>" +
-      slopeClass(slope) +
-      "</b><br>" +
-
       "Distance début : " +
-      troncon.distance_debut.toFixed(0) +
-      " m<br>" +
+      Math.round(troncon.distance_debut.toFixed(0)*0.1)/100 +
+      " km<br>" +
 
       "Distance fin : " +
-      troncon.distance_fin.toFixed(0) +
-      " m<br>" +
+      Math.round(troncon.distance_fin.toFixed(0)*0.1)/100 +
+      " km<br>" +
 
       "Longueur : " +
-      troncon.longueur_m.toFixed(0) +
-      " m<br>" +
+      Math.round(troncon.longueur_m.toFixed(0)*0.1)/100 +
+      " km<br>" 
 
-      "Vitesse moyenne : " +
-      vitesseText
+      
     );
 
     routeLayers.push(layer);
