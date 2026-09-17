@@ -84,9 +84,9 @@
 		
     #status,
     #info {
-	  position: absolute;
-      left: 50px;
-      top: 10px;
+	  position: fixed !important;
+      top: max(12px, env(safe-area-inset-top)) !important;
+      left: max(50px, env(safe-area-inset-right)) !important;
       z-index: 1000;
       max-width: 270px;
       padding: 7px 9px;
