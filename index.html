@@ -74,9 +74,12 @@
     }
 	
 	#speedometer {
-      position: fixed;
-      top: 12px;
-	  right: 12px;
+      position: fixed !important;
+      top: 12px !important;
+	  right: 12px !important;
+	  
+	  bottom: auto !important;
+      left: auto !important;
       z-index: 9999;
 
       min-width: 105px;
@@ -161,6 +164,11 @@
 
 <div id="map"></div>
 
+<div id="speedometer" aria-label="Vitesse actuelle">
+  <span id="speed-value">0.0</span>
+  <span class="speed-unit">km/h</span>
+</div>
+
 <div id="controls">
   <button id="loadButton"
           class="tool-button"
@@ -205,13 +213,7 @@
   <div class="legend-row">
     <span class="legend-color" style="background:#000000"></span> &gt; 12 %
   </div>
-  
-  <div id="speedometer" aria-label="Vitesse actuelle">
-  <span id="speed-value">0.0</span>
-  <span class="speed-unit">km/h</span>
-</div>
 
-  
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
