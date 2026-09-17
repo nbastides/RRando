@@ -61,6 +61,9 @@
     #gpsInfo,
     #status,
     #info {
+	  position: fixed !important;
+      bottom: max(20px, env(safe-area-inset-top)) !important;
+      right: max(10px, env(safe-area-inset-right)) !important;	
       max-width: 270px;
       padding: 7px 9px;
       border-radius: 10px;
@@ -163,6 +166,10 @@
 
 <div id="map"></div>
 
+<div id="gpsInfo"></div>
+
+<div id="info"></div>
+
 <div id="speedometer" aria-label="Vitesse actuelle">
   <span id="speed-value">0.0</span>
   <span class="speed-unit">km/h</span>
@@ -189,10 +196,10 @@
           class="tool-button"
           title="Arrêter le suivi">⛔</button>
 
-  <div id="gpsInfo"></div>
+  
 
   <div id="status"></div>
-  <div id="info"></div>
+  
 </div>
 
 <div id="legend">
