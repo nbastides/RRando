@@ -59,7 +59,7 @@
     }
 
     #gpsInfo{
-		position: fixed !important;
+	  position: fixed !important;
       bottonm: max(12px, env(safe-area-inset-top)) !important;
       left: max(50px, env(safe-area-inset-right)) !important;
       z-index: 1000;
@@ -76,9 +76,9 @@
     }
     #status,
     #info {
-	  position: fixed !important;
-      top: max(12px, env(safe-area-inset-top)) !important;
-      left: max(50px, env(safe-area-inset-right)) !important;
+	  position: absolute;
+      top: 20px;
+      left: 10px;
       z-index: 1000;
       max-width: 270px;
       padding: 7px 9px;
@@ -96,18 +96,13 @@
       position: fixed !important;
       top: max(12px, env(safe-area-inset-top)) !important;
       right: max(12px, env(safe-area-inset-right)) !important;
-	  
-	  
       z-index: 9999;
-
       min-width: 105px;
       padding: 8px 12px;
-
       color: #fff;
       background: rgba(20, 20, 20, 0.82);
       border: 1px solid rgba(255, 255, 255, 0.25);
       border-radius: 8px;
-
       font-family: system-ui, sans-serif;
       font-size: 24px;
       font-weight: 700;
