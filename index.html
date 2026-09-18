@@ -58,7 +58,22 @@
       transform: scale(.94);
     }
 
-    #gpsInfo,	
+    #gpsInfo{
+		position: fixed !important;
+      bottonm: max(12px, env(safe-area-inset-top)) !important;
+      left: max(50px, env(safe-area-inset-right)) !important;
+      z-index: 1000;
+      max-width: 270px;
+      padding: 7px 9px;
+      border-radius: 10px;
+      background: rgba(255,255,255,.84);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      box-shadow: 0 2px 7px rgba(0,0,0,.25);
+      font-size: 10px;
+      line-height: 1.35;
+      color: #222;
+    }
     #status,
     #info {
 	  position: fixed !important;
